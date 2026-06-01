@@ -8,6 +8,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -43,116 +45,112 @@
 }
 
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
+  /* Neo-Nordic Soft Theme Variables */
+  --radius: 0.85rem;
+  --background: oklch(0.985 0.003 75); /* Off-white aconchegante */
+  --foreground: oklch(0.25 0.015 75); /* Cinza escuro quente */
+  --card: oklch(1 0 0); /* Branco puro para os cartões */
+  --card-foreground: oklch(0.25 0.015 75);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  --popover-foreground: oklch(0.25 0.015 75);
+  
+  /* Azul Névoa como cor primária */
+  --primary: oklch(0.42 0.07 245); 
+  --primary-foreground: oklch(0.98 0.01 245);
+  
+  --secondary: oklch(0.94 0.01 75); /* Cinza claro suave */
+  --secondary-foreground: oklch(0.35 0.015 75);
+  
+  --muted: oklch(0.96 0.005 75);
+  --muted-foreground: oklch(0.5 0.01 75);
+  
+  --accent: oklch(0.92 0.015 245); /* Azul névoa bem claro para hovers */
+  --accent-foreground: oklch(0.35 0.06 245);
+  
+  --destructive: oklch(0.6 0.15 25); /* Vermelho terracota calmo para atrasos/erros */
+  --destructive-foreground: oklch(0.98 0.01 25);
+  
+  --border: oklch(0.91 0.005 75); /* Bordas ultra suaves */
+  --input: oklch(0.91 0.005 75);
+  --ring: oklch(0.42 0.07 245 / 30%);
+  
+  --sidebar: oklch(0.97 0.005 75);
+  --sidebar-foreground: oklch(0.25 0.015 75);
+  --sidebar-accent: oklch(0.94 0.01 75);
+  --sidebar-accent-foreground: oklch(0.25 0.015 75);
+  --sidebar-border: oklch(0.91 0.005 75);
+  --sidebar-ring: oklch(0.42 0.07 245 / 30%);
+  
+  --chart-1: oklch(0.42 0.07 245);
+  --chart-2: oklch(0.55 0.11 145); /* Verde sálvia */
+  --chart-3: oklch(0.78 0.09 85);
+  --chart-4: oklch(0.6 0.15 25);
+  --chart-5: oklch(0.45 0.05 200);
 }
 
 .dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  /* Suporte a Dark Mode refinado, mantendo suavidade nórdica */
+  --background: oklch(0.18 0.01 245); /* Azul-cinza escuro profundo */
+  --foreground: oklch(0.9 0.01 245);
+  --card: oklch(0.22 0.01 245);
+  --card-foreground: oklch(0.9 0.01 245);
+  --popover: oklch(0.22 0.01 245);
+  --popover-foreground: oklch(0.9 0.01 245);
+  
+  --primary: oklch(0.65 0.08 245);
+  --primary-foreground: oklch(0.15 0.02 245);
+  
+  --secondary: oklch(0.26 0.01 245);
+  --secondary-foreground: oklch(0.8 0.01 245);
+  
+  --muted: oklch(0.24 0.01 245);
+  --muted-foreground: oklch(0.6 0.01 245);
+  
+  --accent: oklch(0.28 0.03 245);
+  --accent-foreground: oklch(0.85 0.03 245);
+  
+  --destructive: oklch(0.55 0.12 25);
+  --destructive-foreground: oklch(0.95 0.01 25);
+  
+  --border: oklch(0.28 0.01 245 / 60%);
+  --input: oklch(0.28 0.01 245 / 60%);
+  --ring: oklch(0.65 0.08 245 / 40%);
+  
+  --sidebar: oklch(0.2 0.01 245);
+  --sidebar-foreground: oklch(0.9 0.01 245);
+  --sidebar-accent: oklch(0.25 0.01 245);
+  --sidebar-accent-foreground: oklch(0.9 0.01 245);
+  --sidebar-border: oklch(0.25 0.01 245 / 60%);
+  --sidebar-ring: oklch(0.65 0.08 245 / 40%);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    font-family: 'Instrument Sans', 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    @apply tracking-tight font-semibold text-foreground;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-primary/10 selection:text-primary;
   }
-  button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
-  [type="button"]:not(:disabled),
-  [type="submit"]:not(:disabled),
-  [type="reset"]:not(:disabled),
-  a[href],
-  select:not(:disabled),
-  input[type="checkbox"]:not(:disabled),
-  input[type="radio"]:not(:disabled) {
-    @apply cursor-pointer;
+  
+  /* Micro-interações táteis globais nos botões */
+  button:active, [role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
-    padding-right: 1rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 
   .flex {
@@ -160,18 +158,23 @@
     min-width: 0;
   }
 
-  @media (min-width: 640px) {
-    .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
-      padding-right: 1.5rem;
-    }
-  }
-
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
-      padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      padding-left: 3rem;
+      padding-right: 3rem;
+      max-width: 1440px;
     }
+  }
+  
+  /* Sombra suave escandinava */
+  .soft-shadow {
+    box-shadow: 0 4px 30px oklch(0 0 0 / 2%);
+  }
+  .soft-shadow-hover {
+    transition: all 250ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .soft-shadow-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px oklch(0 0 0 / 4%);
   }
 }
