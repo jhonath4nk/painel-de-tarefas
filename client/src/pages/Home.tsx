@@ -5,6 +5,7 @@ import HeaderDashboard from "@/components/HeaderDashboard";
 import HeroVideo from "@/components/HeroVideo";
 import TimelineLinhas from "@/components/TimelineLinhas";
 import DialogoEdicao from "@/components/DialogoEdicao";
+import GraficoProgresso from "@/components/GraficoProgresso";
 import { toast } from "sonner";
 import { HelpCircle, RefreshCw } from "lucide-react";
 
@@ -259,8 +260,11 @@ export default function Home() {
         {/* Header Principal com Big Numbers */}
         <HeaderDashboard objetivos={objetivos} />
 
-        {/* Vídeo de Introdução Conceitual */}
-        <HeroVideo />
+        {/* Gráfico Analítico de Progresso e Vídeo de Conceito */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <GraficoProgresso objetivos={objetivos} />
+          <HeroVideo />
+        </div>
 
         {/* Seção da Timeline de Objetivos e Metas */}
         <div className="space-y-4">

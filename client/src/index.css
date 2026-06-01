@@ -29,11 +29,6 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -45,83 +40,44 @@
 }
 
 :root {
-  /* Neo-Nordic Soft Theme Variables */
-  --radius: 0.85rem;
-  --background: oklch(0.985 0.003 75); /* Off-white aconchegante */
-  --foreground: oklch(0.25 0.015 75); /* Cinza escuro quente */
-  --card: oklch(1 0 0); /* Branco puro para os cartões */
-  --card-foreground: oklch(0.25 0.015 75);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.015 75);
+  /* Cyber-Dark HUD Theme Variables (Fundo Preto Espacial com Acentos Neon) */
+  --radius: 0.75rem;
+  --background: oklch(0.12 0.015 255); /* Preto espacial profundo */
+  --foreground: oklch(0.92 0.01 255); /* Branco-cinza luminoso */
   
-  /* Azul Névoa como cor primária */
-  --primary: oklch(0.42 0.07 245); 
-  --primary-foreground: oklch(0.98 0.01 245);
+  --card: oklch(0.16 0.02 255 / 80%); /* Fundo de cartão translúcido */
+  --card-foreground: oklch(0.92 0.01 255);
   
-  --secondary: oklch(0.94 0.01 75); /* Cinza claro suave */
-  --secondary-foreground: oklch(0.35 0.015 75);
+  --popover: oklch(0.14 0.02 255);
+  --popover-foreground: oklch(0.92 0.01 255);
   
-  --muted: oklch(0.96 0.005 75);
-  --muted-foreground: oklch(0.5 0.01 75);
+  /* Azul Ciano Neon como cor primária brilhante */
+  --primary: oklch(0.78 0.16 195); 
+  --primary-foreground: oklch(0.12 0.015 255);
   
-  --accent: oklch(0.92 0.015 245); /* Azul névoa bem claro para hovers */
-  --accent-foreground: oklch(0.35 0.06 245);
+  --secondary: oklch(0.2 0.02 255); /* Cinza-azul escuro */
+  --secondary-foreground: oklch(0.75 0.01 255);
   
-  --destructive: oklch(0.6 0.15 25); /* Vermelho terracota calmo para atrasos/erros */
+  --muted: oklch(0.18 0.02 255 / 60%);
+  --muted-foreground: oklch(0.6 0.02 255);
+  
+  --accent: oklch(0.78 0.16 195 / 15%); /* Brilho de hover ciano */
+  --accent-foreground: oklch(0.78 0.16 195);
+  
+  /* Vermelho Neon Calmo/Luminoso para atrasos */
+  --destructive: oklch(0.62 0.18 25); 
   --destructive-foreground: oklch(0.98 0.01 25);
   
-  --border: oklch(0.91 0.005 75); /* Bordas ultra suaves */
-  --input: oklch(0.91 0.005 75);
-  --ring: oklch(0.42 0.07 245 / 30%);
+  --border: oklch(0.24 0.03 255 / 40%); /* Bordas sutis de alta tecnologia */
+  --input: oklch(0.24 0.03 255 / 40%);
+  --ring: oklch(0.78 0.16 195 / 40%);
   
-  --sidebar: oklch(0.97 0.005 75);
-  --sidebar-foreground: oklch(0.25 0.015 75);
-  --sidebar-accent: oklch(0.94 0.01 75);
-  --sidebar-accent-foreground: oklch(0.25 0.015 75);
-  --sidebar-border: oklch(0.91 0.005 75);
-  --sidebar-ring: oklch(0.42 0.07 245 / 30%);
-  
-  --chart-1: oklch(0.42 0.07 245);
-  --chart-2: oklch(0.55 0.11 145); /* Verde sálvia */
-  --chart-3: oklch(0.78 0.09 85);
-  --chart-4: oklch(0.6 0.15 25);
-  --chart-5: oklch(0.45 0.05 200);
-}
-
-.dark {
-  /* Suporte a Dark Mode refinado, mantendo suavidade nórdica */
-  --background: oklch(0.18 0.01 245); /* Azul-cinza escuro profundo */
-  --foreground: oklch(0.9 0.01 245);
-  --card: oklch(0.22 0.01 245);
-  --card-foreground: oklch(0.9 0.01 245);
-  --popover: oklch(0.22 0.01 245);
-  --popover-foreground: oklch(0.9 0.01 245);
-  
-  --primary: oklch(0.65 0.08 245);
-  --primary-foreground: oklch(0.15 0.02 245);
-  
-  --secondary: oklch(0.26 0.01 245);
-  --secondary-foreground: oklch(0.8 0.01 245);
-  
-  --muted: oklch(0.24 0.01 245);
-  --muted-foreground: oklch(0.6 0.01 245);
-  
-  --accent: oklch(0.28 0.03 245);
-  --accent-foreground: oklch(0.85 0.03 245);
-  
-  --destructive: oklch(0.55 0.12 25);
-  --destructive-foreground: oklch(0.95 0.01 25);
-  
-  --border: oklch(0.28 0.01 245 / 60%);
-  --input: oklch(0.28 0.01 245 / 60%);
-  --ring: oklch(0.65 0.08 245 / 40%);
-  
-  --sidebar: oklch(0.2 0.01 245);
-  --sidebar-foreground: oklch(0.9 0.01 245);
-  --sidebar-accent: oklch(0.25 0.01 245);
-  --sidebar-accent-foreground: oklch(0.9 0.01 245);
-  --sidebar-border: oklch(0.25 0.01 245 / 60%);
-  --sidebar-ring: oklch(0.65 0.08 245 / 40%);
+  --sidebar: oklch(0.13 0.015 255);
+  --sidebar-foreground: oklch(0.92 0.01 255);
+  --sidebar-accent: oklch(0.18 0.02 255);
+  --sidebar-accent-foreground: oklch(0.78 0.16 195);
+  --sidebar-border: oklch(0.2 0.02 255 / 40%);
+  --sidebar-ring: oklch(0.78 0.16 195 / 40%);
 }
 
 @layer base {
@@ -131,16 +87,19 @@
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    @apply tracking-tight font-semibold text-foreground;
+    @apply tracking-tight font-bold text-foreground;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/10 selection:text-primary;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    background-image: 
+      radial-gradient(at 0% 0%, oklch(0.78 0.16 195 / 3%) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, oklch(0.62 0.18 25 / 2%) 0px, transparent 50%);
   }
   
-  /* Micro-interações táteis globais nos botões */
+  /* Micro-interações táteis nos botões */
   button:active, [role="button"]:active {
-    transform: scale(0.97);
-    transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+    transform: scale(0.96);
+    transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 }
 
@@ -166,15 +125,35 @@
     }
   }
   
-  /* Sombra suave escandinava */
-  .soft-shadow {
-    box-shadow: 0 4px 30px oklch(0 0 0 / 2%);
+  /* Efeitos de Vidro e Brilho Neon (HUD) */
+  .glass-panel {
+    @apply bg-card backdrop-blur-md border border-border;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
   }
-  .soft-shadow-hover {
-    transition: all 250ms cubic-bezier(0.23, 1, 0.32, 1);
+  
+  .glow-cyan {
+    box-shadow: 0 0 15px oklch(0.78 0.16 195 / 20%);
   }
-  .soft-shadow-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 40px oklch(0 0 0 / 4%);
+  
+  .glow-cyan-hover {
+    transition: all 300ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .glow-cyan-hover:hover {
+    box-shadow: 0 0 25px oklch(0.78 0.16 195 / 30%);
+    border-color: oklch(0.78 0.16 195 / 40%);
+    transform: translateY(-1px);
+  }
+
+  .glow-emerald {
+    box-shadow: 0 0 15px oklch(0.72 0.15 145 / 20%);
+  }
+
+  .glow-destructive {
+    box-shadow: 0 0 15px oklch(0.62 0.18 25 / 20%);
+  }
+  
+  /* Fonte HUD para números */
+  .font-hud {
+    font-family: 'Orbitron', sans-serif;
   }
 }
