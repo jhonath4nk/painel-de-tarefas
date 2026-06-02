@@ -257,24 +257,18 @@ export default function Home() {
 
       {/* Conteúdo Principal do Dashboard */}
       <main className="flex-1 p-6 lg:p-10 space-y-8 overflow-y-auto max-w-6xl mx-auto w-full">
-        {/* Header Principal com Big Numbers */}
+        {/* Header Principal com Big Numbers diretamente no topo */}
         <HeaderDashboard objetivos={objetivos} />
 
-        {/* Gráfico Analítico de Progresso e Vídeo de Conceito */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <GraficoProgresso objetivos={objetivos} />
-          <HeroVideo />
-        </div>
-
-        {/* Seção da Timeline de Objetivos e Metas */}
-        <div className="space-y-4">
+        {/* Seção da Timeline de Objetivos e Metas LOGO ABAIXO */}
+        <div className="space-y-4 pt-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-foreground tracking-tight">
+            <h2 className="text-lg font-bold text-foreground tracking-tight uppercase font-hud">
               Linha do Tempo Estratégica
             </h2>
             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <HelpCircle className="w-3.5 h-3.5" />
-              Clique nas setas para expandir e ver metas
+              Clique para expandir e ver metas/submetas
             </span>
           </div>
 
