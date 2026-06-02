@@ -40,25 +40,7 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
   }, 0);
 
   return (
-    <div className="space-y-6">
-      {/* Título e Conceito */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border/60 pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-            <span className="text-[10px] font-bold tracking-widest text-primary uppercase font-hud">
-              Live Monitoring System
-            </span>
-          </div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl font-hud mt-1 uppercase bg-gradient-to-r from-foreground via-foreground/90 to-primary bg-clip-text text-transparent">
-            Tidly // Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1 text-xs sm:text-sm max-w-2xl">
-            Centro de controle tático de objetivos, metas e submetas integradas em tempo real.
-          </p>
-        </div>
-      </div>
-
+    <div className="space-y-4">
       {/* Grid de Big Numbers - Estilo HUD de Alta Tecnologia */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Objetivos Ativos */}

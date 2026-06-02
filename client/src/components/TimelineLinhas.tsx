@@ -327,61 +327,71 @@ export default function TimelineLinhas({
                           </div>
                         </div>
 
-                        {/* Lista de Submetas (Checkpoints HUD) */}
+                        {/* Lista de Submetas Horizontal (Steps de Conclusão) */}
                         {expandidaMeta && (
-                          <div className="mt-2 ml-4 pl-6 border-l border-dashed border-primary/20 space-y-2.5 relative">
+                          <div className="mt-3 ml-4 pl-4 relative">
                             {meta.submetas.length === 0 ? (
                               <p className="text-xs text-muted-foreground py-1">
                                 Nenhuma submeta cadastrada. Clique no "+" para criar um prazo específico.
                               </p>
                             ) : (
-                              meta.submetas.map((sub) => {
-                                const atrasadaSub = estaAtrasado(sub.prazo, sub.concluida);
+                              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                                {meta.submetas.map((sub, idx) => {
+                                  const atrasadaSub = estaAtrasado(sub.prazo, sub.concluida);
+                                  const ehUltimo = idx === meta.submetas.length - 1;
 
-                                return (
-                                  <div 
-                                    key={sub.id} 
-                                    className="flex items-center justify-between gap-3 p-2 bg-card/40 border border-border/20 rounded-lg hover:border-primary/20 transition-colors group/sub"
-                                  >
-                                    <div className="flex items-center gap-2.5 min-w-0">
-                                      <Checkbox 
-                                        checked={sub.concluida}
-                                        onCheckedChange={() => onToggleSubmeta(obj.id, meta.id, sub.id)}
-                                        className="rounded border-border/60 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                                      />
-                                      <span className={`text-xs font-medium truncate ${
-                                        sub.concluida 
-                                          ? "text-muted-foreground line-through decoration-muted-foreground/50" 
-                                          : "text-foreground"
-                                      }`}>
-                                        {sub.nome}
-                                      </span>
-                                    </div>
+                                  return (
+                                    <React.Fragment key={sub.id}>
+                                      {/* Item do Step */}
+                                      <div className="flex items-center gap-3 bg-card/30 border border-border/20 rounded-xl p-2.5 min-w-[200px] md:max-w-[280px] flex-1 hover:border-primary/30 transition-all duration-200 group/sub relative">
+                                        <Checkbox 
+                                          checked={sub.concluida}
+                                          onCheckedChange={() => onToggleSubmeta(obj.id, meta.id, sub.id)}
+                                          className="rounded border-border/60 data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 h-4 w-4"
+                                        />
+                                        
+                                        <div className="min-w-0 flex-1">
+                                          <p className={`text-xs font-semibold truncate ${
+                                            sub.concluida 
+                                              ? "text-muted-foreground line-through decoration-muted-foreground/50" 
+                                              : "text-foreground"
+                                          }`}>
+                                            {sub.nome}
+                                          </p>
+                                          <span className={`text-[9px] font-bold font-hud uppercase flex items-center gap-1 mt-0.5 ${
+                                            sub.concluida 
+                                              ? "text-emerald-400" 
+                                              : atrasadaSub 
+                                                ? "text-destructive" 
+                                                : "text-muted-foreground"
+                                          }`}>
+                                            <Calendar className="w-2.5 h-2.5" />
+                                            {formatarData(sub.prazo)}
+                                          </span>
+                                        </div>
 
-                                    <div className="flex items-center gap-3">
-                                      <span className={`text-[9px] font-bold font-hud uppercase flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                                        sub.concluida 
-                                          ? "bg-emerald-500/10 text-emerald-400" 
-                                          : atrasadaSub 
-                                            ? "bg-destructive/10 text-destructive" 
-                                            : "bg-muted text-muted-foreground"
-                                      }`}>
-                                        <Calendar className="w-2.5 h-2.5" />
-                                        {formatarData(sub.prazo)}
-                                      </span>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon"
+                                          onClick={() => onEditarSubmeta(obj.id, meta.id, sub)}
+                                          className="h-6 w-6 opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-foreground rounded transition-opacity"
+                                        >
+                                          <Edit2 className="w-3 h-3" />
+                                        </Button>
+                                      </div>
 
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        onClick={() => onEditarSubmeta(obj.id, meta.id, sub)}
-                                        className="h-6 w-6 opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-foreground rounded transition-opacity"
-                                      >
-                                        <Edit2 className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                );
-                              })
+                                      {/* Linha conectora entre os Steps (apenas em desktop) */}
+                                      {!ehUltimo && (
+                                        <div className="hidden md:block h-0.5 w-6 bg-border/30 shrink-0 relative">
+                                          <div className={`absolute inset-0 transition-all duration-300 ${
+                                            sub.concluida ? "bg-emerald-500/50" : ""
+                                          }`} />
+                                        </div>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </div>
                             )}
                           </div>
                         )}

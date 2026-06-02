@@ -262,16 +262,6 @@ export default function Home() {
 
         {/* Seção da Timeline de Objetivos e Metas LOGO ABAIXO */}
         <div className="space-y-4 pt-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground tracking-tight uppercase font-hud">
-              Linha do Tempo Estratégica
-            </h2>
-            <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <HelpCircle className="w-3.5 h-3.5" />
-              Clique para expandir e ver metas/submetas
-            </span>
-          </div>
-
           <TimelineLinhas 
             objetivos={objetivos}
             onToggleSubmeta={handleToggleSubmeta}
