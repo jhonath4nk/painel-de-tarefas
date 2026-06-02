@@ -374,7 +374,8 @@ export default function TimelineLinhas({
                                           variant="ghost" 
                                           size="icon"
                                           onClick={() => onEditarSubmeta(obj.id, meta.id, sub)}
-                                          className="h-6 w-6 opacity-0 group-hover/sub:opacity-100 text-muted-foreground hover:text-foreground rounded transition-opacity"
+                                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-all duration-200"
+                                          title="Editar / Excluir Subetapa"
                                         >
                                           <Edit2 className="w-3 h-3" />
                                         </Button>
