@@ -120,13 +120,15 @@ export default function TimelineLinhas({
 
   return (
     <div className="space-y-6">
-      {objetivos.map((obj) => {
-        const progressoObj = obterProgressoObjetivo(obj);
-        const atrasadoObj = estaAtrasado(obj.prazo, progressoObj === 100);
-        const IconeObj = ICON_MAP[obj.icone || "Target"] || Target;
-        const expandidoObj = objetivosExpandidos[obj.id];
+      {[...objetivos]
+        .sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime())
+        .map((obj) => {
+          const progressoObj = obterProgressoObjetivo(obj);
+          const atrasadoObj = estaAtrasado(obj.prazo, progressoObj === 100);
+          const IconeObj = ICON_MAP[obj.icone || "Target"] || Target;
+          const expandidoObj = objetivosExpandidos[obj.id];
 
-        return (
+          return (
           <div 
             key={obj.id} 
             className="bg-card border border-border/80 rounded-2xl p-5 hover:border-border transition-all duration-200"
@@ -237,10 +239,12 @@ export default function TimelineLinhas({
                     Nenhuma meta cadastrada para este objetivo. Clique no botão "+" para criar uma.
                   </p>
                 ) : (
-                  obj.metas.map((meta) => {
-                    const progressoMeta = obterProgressoMeta(meta);
-                    const atrasadoMeta = estaAtrasado(meta.prazo, progressoMeta === 100);
-                    const expandidaMeta = metasExpandidas[meta.id];
+                  [...obj.metas]
+                    .sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime())
+                    .map((meta) => {
+                      const progressoMeta = obterProgressoMeta(meta);
+                      const atrasadoMeta = estaAtrasado(meta.prazo, progressoMeta === 100);
+                      const expandidaMeta = metasExpandidas[meta.id];
 
                     return (
                       <div key={meta.id} className="group relative">
@@ -355,11 +359,13 @@ export default function TimelineLinhas({
                                 <div className="absolute top-[18px] left-[16px] right-[16px] h-[1px] bg-white/20 z-0 hidden md:block" />
 
                                 <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-4 overflow-x-auto pb-4 scrollbar-thin relative z-10">
-                                  {meta.submetas.map((sub, idx) => {
-                                    const progressoSub = obterProgressoSubmeta(sub);
-                                    const subConcluida = progressoSub === 100;
-                                    const atrasadaSub = estaAtrasado(sub.prazo, subConcluida);
-                                    const subAberta = submetasAbertas[sub.id];
+                                  {[...meta.submetas]
+                                    .sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime())
+                                    .map((sub, idx) => {
+                                      const progressoSub = obterProgressoSubmeta(sub);
+                                      const subConcluida = progressoSub === 100;
+                                      const atrasadaSub = estaAtrasado(sub.prazo, subConcluida);
+                                      const subAberta = submetasAbertas[sub.id];
 
                                     return (
                                       <div key={sub.id} className="flex-1 min-w-[240px] md:max-w-[320px] flex flex-col gap-2 group/step">
