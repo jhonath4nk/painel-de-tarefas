@@ -31,6 +31,7 @@ interface TimelineLinhasProps {
   onEditarSubmeta: (objetivoId: string, metaId: string, submeta: Submeta) => void;
   onCriarMeta: (objetivoId: string) => void;
   onCriarSubmeta: (objetivoId: string, metaId: string) => void;
+  autenticado?: boolean;
 }
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
@@ -52,7 +53,8 @@ export default function TimelineLinhas({
   onEditarMeta,
   onEditarSubmeta,
   onCriarMeta,
-  onCriarSubmeta
+  onCriarSubmeta,
+  autenticado = false
 }: TimelineLinhasProps) {
   const [objetivosExpandidos, setObjetivosExpandidos] = useState<Record<string, boolean>>({
     "obj-1": true
@@ -203,25 +205,27 @@ export default function TimelineLinhas({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => onEditarObjetivo(obj)}
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => onCriarMeta(obj.id)}
-                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-lg"
-                    title="Adicionar Meta"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </div>
+                {autenticado && (
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => onEditarObjetivo(obj)}
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => onCriarMeta(obj.id)}
+                      className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-lg"
+                      title="Adicionar Meta"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -314,25 +318,27 @@ export default function TimelineLinhas({
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => onEditarMeta(obj.id, meta)}
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-md"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => onCriarSubmeta(obj.id, meta.id)}
-                                className="h-7 w-7 text-primary hover:bg-primary/10 rounded-md"
-                                title="Adicionar Submeta"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
+                            {autenticado && (
+                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => onEditarMeta(obj.id, meta)}
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-md"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => onCriarSubmeta(obj.id, meta.id)}
+                                  className="h-7 w-7 text-primary hover:bg-primary/10 rounded-md"
+                                  title="Adicionar Submeta"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -356,18 +362,20 @@ export default function TimelineLinhas({
                                     const subAberta = submetasAbertas[sub.id];
 
                                     return (
-                                      <div key={sub.id} className="flex-1 min-w-[240px] md:max-w-[320px] flex flex-col gap-2">
+                                      <div key={sub.id} className="flex-1 min-w-[240px] md:max-w-[320px] flex flex-col gap-2 group/step">
                                         {/* Cabeçalho do Step com Marcador Circular */}
                                         <div className="flex items-center gap-3 relative">
                                           {/* Círculo do Step */}
                                           <div 
-                                            onClick={() => onToggleSubmeta(obj.id, meta.id, sub.id)}
-                                            className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 border-2 z-10 shrink-0 ${
+                                            onClick={() => autenticado && onToggleSubmeta(obj.id, meta.id, sub.id)}
+                                            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 border-2 z-10 shrink-0 ${
+                                              autenticado ? "cursor-pointer hover:border-primary" : "cursor-default"
+                                            } ${
                                               subConcluida 
                                                 ? "bg-emerald-500 border-emerald-500 text-white" 
                                                 : progressoSub > 0
                                                   ? "bg-background border-amber-500 text-amber-500"
-                                                  : "bg-background border-border text-muted-foreground hover:border-primary"
+                                                  : "bg-background border-border text-muted-foreground"
                                             }`}
                                           >
                                             {subConcluida ? (
@@ -397,14 +405,16 @@ export default function TimelineLinhas({
                                           </div>
 
                                           {/* Botão de Editar Submeta */}
-                                          <Button 
-                                            variant="ghost" 
-                                            size="icon"
-                                            onClick={() => onEditarSubmeta(obj.id, meta.id, sub)}
-                                            className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary shrink-0"
-                                          >
-                                            <Edit2 className="w-3.5 h-3.5" />
-                                          </Button>
+                                          {autenticado && (
+                                            <Button 
+                                              variant="ghost" 
+                                              size="icon"
+                                              onClick={() => onEditarSubmeta(obj.id, meta.id, sub)}
+                                              className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary shrink-0 opacity-0 group-hover/step:opacity-100 transition-opacity duration-150"
+                                            >
+                                              <Edit2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                          )}
                                         </div>
 
                                         {/* Card Flat de Checklist de Etapas */}
@@ -431,8 +441,10 @@ export default function TimelineLinhas({
                                               {sub.etapas.map((etapa) => (
                                                 <div 
                                                   key={etapa.id} 
-                                                  className="flex items-start gap-2 p-1.5 hover:bg-secondary/40 rounded-lg transition-colors cursor-pointer"
-                                                  onClick={() => onToggleEtapa(obj.id, meta.id, sub.id, etapa.id)}
+                                                  className={`flex items-start gap-2 p-1.5 rounded-lg transition-colors ${
+                                                    autenticado ? "hover:bg-secondary/40 cursor-pointer" : "cursor-default"
+                                                  }`}
+                                                  onClick={() => autenticado && onToggleEtapa(obj.id, meta.id, sub.id, etapa.id)}
                                                 >
                                                   <div className="mt-0.5 shrink-0">
                                                     {etapa.concluida ? (
