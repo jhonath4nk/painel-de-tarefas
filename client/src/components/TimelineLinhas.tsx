@@ -345,23 +345,8 @@ export default function TimelineLinhas({
                               </p>
                             ) : (
                               <div className="relative">
-                                {/* Linha de Progressão Contínua Conectora de Fundo */}
-                                <div className="absolute top-[18px] left-[16px] right-[16px] h-1 bg-secondary rounded-full z-0 hidden md:block" />
-                                
-                                {/* Linha de Progresso Ativa baseada na conclusão de submetas */}
-                                <div 
-                                  className="absolute top-[18px] left-[16px] h-1 bg-emerald-500 rounded-full z-0 transition-all duration-500 hidden md:block"
-                                  style={{
-                                    width: (() => {
-                                      const total = meta.submetas.length;
-                                      if (total <= 1) return "0%";
-                                      const concluidas = meta.submetas.filter(s => obterProgressoSubmeta(s) === 100).length;
-                                      // Calcula a largura da linha de conexão com base no número de submetas completas
-                                      const percent = total > 1 ? (concluidas / (total - 1)) * 100 : 0;
-                                      return `calc(${Math.min(percent, 100)}% - 32px)`;
-                                    })()
-                                  }}
-                                />
+                                {/* Linha de Progressão Contínua Conectora de Fundo (Fina e Branca) */}
+                                <div className="absolute top-[18px] left-[16px] right-[16px] h-[1px] bg-white/20 z-0 hidden md:block" />
 
                                 <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-4 overflow-x-auto pb-4 scrollbar-thin relative z-10">
                                   {meta.submetas.map((sub, idx) => {
