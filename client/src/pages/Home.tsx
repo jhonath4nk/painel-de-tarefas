@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Objetivo, Meta, Submeta, DADOS_INICIAIS } from "@/lib/types";
-import SidebarDashboard from "@/components/SidebarDashboard";
+import { Objetivo, Meta, Submeta, Etapa, DADOS_INICIAIS } from "@/lib/types";
 import HeaderDashboard from "@/components/HeaderDashboard";
-import HeroVideo from "@/components/HeroVideo";
 import TimelineLinhas from "@/components/TimelineLinhas";
+import SidebarDashboard from "@/components/SidebarDashboard";
 import DialogoEdicao from "@/components/DialogoEdicao";
-import GraficoProgresso from "@/components/GraficoProgresso";
+import HeroVideo from "@/components/HeroVideo";
 import { toast } from "sonner";
-import { HelpCircle, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export default function Home() {
   const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
@@ -19,11 +18,11 @@ export default function Home() {
   const [modoDialogo, setModoDialogo] = useState<"criar" | "editar">("criar");
   const [dadosEdicao, setDadosEdicao] = useState<any>(null);
 
-  // IDs de apoio para criação de filhos
+  // Auxiliares para criação aninhada
   const [idObjetivoAtivo, setIdObjetivoAtivo] = useState<string | null>(null);
   const [idMetaAtiva, setIdMetaAtiva] = useState<string | null>(null);
 
-  // Carregar do localStorage ou iniciar com mocks
+  // Carregar dados iniciais do localStorage
   useEffect(() => {
     const dadosSalvos = localStorage.getItem("tidly_objetivos");
     if (dadosSalvos) {
@@ -44,7 +43,7 @@ export default function Home() {
     localStorage.setItem("tidly_objetivos", JSON.stringify(novosObjetivos));
   };
 
-  // Alternar conclusão de submeta
+  // Alternar conclusão de submeta (conclui todas as etapas de uma vez ou desmarca todas)
   const handleToggleSubmeta = (objetivoId: string, metaId: string, submetaId: string) => {
     const novosObjetivos = objetivos.map(obj => {
       if (obj.id !== objetivoId) return obj;
@@ -57,10 +56,61 @@ export default function Home() {
             submetas: meta.submetas.map(sub => {
               if (sub.id !== submetaId) return sub;
               const novoEstado = !sub.concluida;
+              
+              // Se marcar como concluída, marcar todas as etapas como concluídas.
+              // Se desmarcar, desmarcar todas as etapas.
+              const novasEtapas = sub.etapas?.map(e => ({ ...e, concluida: novoEstado })) || [];
+              
               if (novoEstado) {
                 toast.success(`Submeta "${sub.nome}" concluída!`);
               }
-              return { ...sub, concluida: novoEstado };
+              return { 
+                ...sub, 
+                concluida: novoEstado,
+                etapas: novasEtapas
+              };
+            })
+          };
+        })
+      };
+    });
+    salvarDados(novosObjetivos);
+  };
+
+  // Alternar conclusão de uma Etapa específica dentro de uma Submeta
+  const handleToggleEtapa = (objetivoId: string, metaId: string, submetaId: string, etapaId: string) => {
+    const novosObjetivos = objetivos.map(obj => {
+      if (obj.id !== objetivoId) return obj;
+      return {
+        ...obj,
+        metas: obj.metas.map(meta => {
+          if (meta.id !== metaId) return meta;
+          return {
+            ...meta,
+            submetas: meta.submetas.map(sub => {
+              if (sub.id !== submetaId) return sub;
+              
+              const novasEtapas = sub.etapas.map(etapa => {
+                if (etapa.id !== etapaId) return etapa;
+                const novoEstado = !etapa.concluida;
+                if (novoEstado) {
+                  toast.success(`Etapa "${etapa.nome}" concluída!`);
+                }
+                return { ...etapa, concluida: novoEstado };
+              });
+
+              // Submeta é concluída se TODAS as etapas estiverem concluídas
+              const todasConcluidas = novasEtapas.length > 0 && novasEtapas.every(e => e.concluida);
+              
+              if (todasConcluidas && !sub.concluida) {
+                toast.success(`Parabéns! Todas as etapas de "${sub.nome}" foram concluídas!`);
+              }
+
+              return {
+                ...sub,
+                etapas: novasEtapas,
+                concluida: todasConcluidas
+              };
             })
           };
         })
@@ -124,7 +174,8 @@ export default function Home() {
                 id: `sub-${Date.now()}`,
                 nome: dados.nome,
                 prazo: dados.prazo,
-                concluida: false
+                concluida: dados.concluida || false,
+                etapas: dados.etapas || []
               };
               return { ...m, submetas: [...m.submetas, novaSub] };
             })
@@ -215,7 +266,10 @@ export default function Home() {
     setIdMetaAtiva(metaId);
     setTipoDialogo("submeta");
     setModoDialogo("criar");
-    setDadosEdicao({ prazo: new Date().toISOString().split("T")[0] });
+    setDadosEdicao({ 
+      prazo: new Date().toISOString().split("T")[0],
+      etapas: []
+    });
     setDialogoAberto(true);
   };
 
@@ -248,12 +302,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
-      {/* Barra Lateral Esquerda */}
-      <SidebarDashboard 
-        onCriarObjetivo={abrirCriarObjetivo}
-        onLimparDados={handleLimparDados}
-      />
+    <div className="min-h-screen flex bg-background text-foreground selection:bg-primary/20">
+      {/* Barra Lateral Esquerda (Navegação & Redefinição) */}
+      <SidebarDashboard onLimparDados={handleLimparDados} onCriarObjetivo={abrirCriarObjetivo} />
 
       {/* Conteúdo Principal do Dashboard */}
       <main className="flex-1 p-6 lg:p-10 space-y-8 overflow-y-auto max-w-6xl mx-auto w-full">
@@ -265,6 +316,7 @@ export default function Home() {
           <TimelineLinhas 
             objetivos={objetivos}
             onToggleSubmeta={handleToggleSubmeta}
+            onToggleEtapa={handleToggleEtapa}
             onEditarObjetivo={abrirEditarObjetivo}
             onEditarMeta={abrirEditarMeta}
             onEditarSubmeta={abrirEditarSubmeta}
@@ -273,19 +325,19 @@ export default function Home() {
           />
         </div>
 
-        {/* Rodapé Conceitual v6 */}
-        <footer className="pt-12 pb-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>© 2026 Tidly Productivity Inc. Todos os direitos reservados.</p>
+        {/* Rodapé Oculto/Discreto v6 e Créditos de Design */}
+        <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
+          <span>&copy; 2026 Tidly Productivity Inc. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
             <span>v6 no rodapé</span>
-            <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-            <span>Design Neo-Nordic</span>
+            <span>&bull;</span>
+            <span>Design Notion-Flat</span>
           </div>
         </footer>
       </main>
 
-      {/* Diálogo Reutilizável de Criação e Edição */}
-      <DialogoEdicao 
+      {/* Diálogo Único de Criação e Edição */}
+      <DialogoEdicao
         isOpen={dialogoAberto}
         onClose={() => setDialogoAberto(false)}
         tipo={tipoDialogo}

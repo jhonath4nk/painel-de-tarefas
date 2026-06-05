@@ -8,8 +8,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -29,6 +27,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -40,66 +43,56 @@
 }
 
 :root {
-  /* Cyber-Dark HUD Theme Variables (Fundo Preto Espacial com Acentos Neon) */
-  --radius: 0.75rem;
-  --background: oklch(0.12 0.015 255); /* Preto espacial profundo */
-  --foreground: oklch(0.92 0.01 255); /* Branco-cinza luminoso */
+  /* Estilo Flat Amigável - Paleta Escura Confortável (Estilo Notion Dark / Linear) */
+  --primary: oklch(0.65 0.14 200); /* Verde menta suave amigável */
+  --primary-foreground: oklch(0.1 0.02 200);
   
-  --card: oklch(0.16 0.02 255 / 80%); /* Fundo de cartão translúcido */
-  --card-foreground: oklch(0.92 0.01 255);
+  --background: oklch(0.15 0.01 240); /* Preto azulado muito suave e amigável (Notion Dark) */
+  --foreground: oklch(0.92 0.01 240); /* Branco suave */
   
-  --popover: oklch(0.14 0.02 255);
-  --popover-foreground: oklch(0.92 0.01 255);
+  --card: oklch(0.18 0.01 240); /* Card ligeiramente mais claro */
+  --card-foreground: oklch(0.92 0.01 240);
   
-  /* Azul Ciano Neon como cor primária brilhante */
-  --primary: oklch(0.78 0.16 195); 
-  --primary-foreground: oklch(0.12 0.015 255);
+  --popover: oklch(0.18 0.01 240);
+  --popover-foreground: oklch(0.92 0.01 240);
   
-  --secondary: oklch(0.2 0.02 255); /* Cinza-azul escuro */
-  --secondary-foreground: oklch(0.75 0.01 255);
+  --secondary: oklch(0.23 0.01 240);
+  --secondary-foreground: oklch(0.85 0.01 240);
   
-  --muted: oklch(0.18 0.02 255 / 60%);
-  --muted-foreground: oklch(0.6 0.02 255);
+  --muted: oklch(0.23 0.01 240);
+  --muted-foreground: oklch(0.65 0.01 240);
   
-  --accent: oklch(0.78 0.16 195 / 15%); /* Brilho de hover ciano */
-  --accent-foreground: oklch(0.78 0.16 195);
+  --accent: oklch(0.23 0.01 240);
+  --accent-foreground: oklch(0.92 0.01 240);
   
-  /* Vermelho Neon Calmo/Luminoso para atrasos */
-  --destructive: oklch(0.62 0.18 25); 
+  --destructive: oklch(0.60 0.15 25); /* Vermelho pastel suave */
   --destructive-foreground: oklch(0.98 0.01 25);
   
-  --border: oklch(0.24 0.03 255 / 40%); /* Bordas sutis de alta tecnologia */
-  --input: oklch(0.24 0.03 255 / 40%);
-  --ring: oklch(0.78 0.16 195 / 40%);
+  --border: oklch(0.25 0.01 240); /* Bordas discretas e elegantes */
+  --input: oklch(0.25 0.01 240);
+  --ring: oklch(0.55 0.1 200);
   
-  --sidebar: oklch(0.13 0.015 255);
-  --sidebar-foreground: oklch(0.92 0.01 255);
-  --sidebar-accent: oklch(0.18 0.02 255);
-  --sidebar-accent-foreground: oklch(0.78 0.16 195);
-  --sidebar-border: oklch(0.2 0.02 255 / 40%);
-  --sidebar-ring: oklch(0.78 0.16 195 / 40%);
+  --radius: 0.75rem; /* Cantos arredondados amigáveis */
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    font-family: 'Instrument Sans', 'Inter', sans-serif;
-  }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    @apply tracking-tight font-bold text-foreground;
+    font-family: 'Instrument Sans', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
-    background-image: 
-      radial-gradient(at 0% 0%, oklch(0.78 0.16 195 / 3%) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, oklch(0.62 0.18 25 / 2%) 0px, transparent 50%);
+    @apply bg-background text-foreground antialiased;
   }
-  
-  /* Micro-interações táteis nos botões */
-  button:active, [role="button"]:active {
-    transform: scale(0.96);
-    transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
   }
 }
 
@@ -119,41 +112,35 @@
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 3rem;
-      padding-right: 3rem;
-      max-width: 1440px;
+      max-width: 1200px;
     }
   }
-  
-  /* Efeitos de Vidro e Brilho Neon (HUD) */
-  .glass-panel {
-    @apply bg-card backdrop-blur-md border border-border;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
-  }
-  
-  .glow-cyan {
-    box-shadow: 0 0 15px oklch(0.78 0.16 195 / 20%);
-  }
-  
-  .glow-cyan-hover {
-    transition: all 300ms cubic-bezier(0.23, 1, 0.32, 1);
-  }
-  .glow-cyan-hover:hover {
-    box-shadow: 0 0 25px oklch(0.78 0.16 195 / 30%);
-    border-color: oklch(0.78 0.16 195 / 40%);
-    transform: translateY(-1px);
-  }
 
-  .glow-emerald {
-    box-shadow: 0 0 15px oklch(0.72 0.15 145 / 20%);
+  /* Scrollbar discreta estilo Notion */
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
   }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.35 0.01 240);
+  }
+}
 
-  .glow-destructive {
-    box-shadow: 0 0 15px oklch(0.62 0.18 25 / 20%);
-  }
-  
-  /* Fonte HUD para números */
-  .font-hud {
-    font-family: 'Orbitron', sans-serif;
-  }
+/* Transições amigáveis e suaves */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Efeito de botão ativo amigável */
+.btn-active-scale:active {
+  transform: scale(0.97);
 }
