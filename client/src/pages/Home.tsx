@@ -4,9 +4,10 @@ import HeaderDashboard from "@/components/HeaderDashboard";
 import TimelineLinhas from "@/components/TimelineLinhas";
 import SidebarDashboard from "@/components/SidebarDashboard";
 import DialogoEdicao from "@/components/DialogoEdicao";
-import HeroVideo from "@/components/HeroVideo";
+import DialogoLoginGitHub from "@/components/DialogoLoginGitHub";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
+import { GitHubUser, SyncStatus, sincronizarGist, atualizarGist, validarGitHubToken } from "@/lib/githubService";
 
 export default function Home() {
   const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
@@ -22,25 +23,128 @@ export default function Home() {
   const [idObjetivoAtivo, setIdObjetivoAtivo] = useState<string | null>(null);
   const [idMetaAtiva, setIdMetaAtiva] = useState<string | null>(null);
 
-  // Carregar dados iniciais do localStorage
+  // Estados de Autenticação e Sincronização do GitHub
+  const [githubToken, setGithubToken] = useState<string | null>(null);
+  const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
+  const [gistId, setGistId] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({ status: "idle" });
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+
+  // Carregar dados iniciais (LocalStorage) e verificar se há token do GitHub salvo
   useEffect(() => {
-    const dadosSalvos = localStorage.getItem("tidly_objetivos");
-    if (dadosSalvos) {
-      try {
-        setObjetivos(JSON.parse(dadosSalvos));
-      } catch {
-        setObjetivos(DADOS_INICIAIS);
+    const inicializar = async () => {
+      // 1. Carregar dados locais temporariamente
+      const dadosSalvos = localStorage.getItem("tidly_objetivos");
+      let dadosIniciaisParaUsar = DADOS_INICIAIS;
+      if (dadosSalvos) {
+        try {
+          dadosIniciaisParaUsar = JSON.parse(dadosSalvos);
+        } catch {
+          dadosIniciaisParaUsar = DADOS_INICIAIS;
+        }
       }
-    } else {
-      setObjetivos(DADOS_INICIAIS);
-    }
-    setIsCarregado(true);
+      setObjetivos(dadosIniciaisParaUsar);
+
+      // 2. Verificar se há Token do GitHub salvo
+      const tokenSalvo = localStorage.getItem("tidly_github_token");
+      const gistIdSalvo = localStorage.getItem("tidly_github_gist_id");
+      const userSalvo = localStorage.getItem("tidly_github_user");
+
+      if (tokenSalvo && gistIdSalvo && userSalvo) {
+        try {
+          setSyncStatus({ status: "syncing", message: "Conectando ao GitHub..." });
+          const user = JSON.parse(userSalvo);
+          setGithubToken(tokenSalvo);
+          setGithubUser(user);
+          setGistId(gistIdSalvo);
+
+          // Sincronizar dados do Gist na nuvem (baixa os mais recentes se houver)
+          const resultado = await sincronizarGist(tokenSalvo, dadosIniciaisParaUsar);
+          setGistId(resultado.gistId);
+          setObjetivos(resultado.dados);
+          localStorage.setItem("tidly_objetivos", JSON.stringify(resultado.dados));
+          localStorage.setItem("tidly_github_gist_id", resultado.gistId);
+          
+          setSyncStatus({ 
+            status: "success", 
+            lastSync: new Date().toLocaleTimeString(),
+            message: "Sincronizado com o GitHub" 
+          });
+        } catch (err) {
+          console.error("Erro ao sincronizar na inicialização", err);
+          setSyncStatus({ status: "error", message: "Erro de sincronização. Reconecte seu token." });
+          toast.error("Sessão do GitHub expirada ou inválida. Por favor, conecte-se novamente.");
+        }
+      }
+      setIsCarregado(true);
+    };
+
+    inicializar();
   }, []);
 
-  // Salvar no localStorage sempre que objetivos mudarem
-  const salvarDados = (novosObjetivos: Objetivo[]) => {
+  // Salvar dados (Localmente e na Nuvem se logado)
+  const salvarDados = async (novosObjetivos: Objetivo[]) => {
+    // 1. Salvar localmente instantaneamente para UX fluida
     setObjetivos(novosObjetivos);
     localStorage.setItem("tidly_objetivos", JSON.stringify(novosObjetivos));
+
+    // 2. Se logado no GitHub, salvar de forma assíncrona na nuvem
+    if (githubToken && gistId) {
+      setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
+      try {
+        await atualizarGist(githubToken, gistId, novosObjetivos);
+        setSyncStatus({ 
+          status: "success", 
+          lastSync: new Date().toLocaleTimeString(),
+          message: "Salvo no GitHub" 
+        });
+      } catch (err) {
+        console.error("Erro ao salvar no Gist", err);
+        setSyncStatus({ status: "error", message: "Erro ao salvar na nuvem." });
+        toast.error("Falha ao salvar dados no GitHub. Suas alterações continuam salvas localmente.");
+      }
+    }
+  };
+
+  // Tratar sucesso de login do GitHub
+  const handleLoginSuccess = async (token: string, user: GitHubUser) => {
+    setGithubToken(token);
+    setGithubUser(user);
+    localStorage.setItem("tidly_github_token", token);
+    localStorage.setItem("tidly_github_user", JSON.stringify(user));
+
+    setSyncStatus({ status: "syncing", message: "Sincronizando dados..." });
+    try {
+      // Sincroniza e mescla os dados locais com os dados do Gist (se já houver um)
+      const resultado = await sincronizarGist(token, objetivos);
+      setGistId(resultado.gistId);
+      setObjetivos(resultado.dados);
+      localStorage.setItem("tidly_github_gist_id", resultado.gistId);
+      localStorage.setItem("tidly_objetivos", JSON.stringify(resultado.dados));
+
+      setSyncStatus({ 
+        status: "success", 
+        lastSync: new Date().toLocaleTimeString(),
+        message: "Conectado e sincronizado!" 
+      });
+    } catch (err: any) {
+      setSyncStatus({ status: "error", message: "Erro ao sincronizar." });
+      toast.error(err.message || "Erro ao configurar Gist de dados.");
+    }
+  };
+
+  // Desconectar do GitHub
+  const handleLogoutGitHub = () => {
+    if (confirm("Deseja desconectar do GitHub? Seus dados continuarão salvos localmente neste navegador.")) {
+      setGithubToken(null);
+      setGithubUser(null);
+      setGistId(null);
+      setSyncStatus({ status: "idle" });
+      localStorage.removeItem("tidly_github_token");
+      localStorage.removeItem("tidly_github_gist_id");
+      localStorage.removeItem("tidly_github_user");
+      toast.info("Desconectado do GitHub.");
+    }
   };
 
   // Alternar conclusão de submeta (conclui todas as etapas de uma vez ou desmarca todas)
@@ -160,7 +264,7 @@ export default function Home() {
             metas: o.metas.map(m => m.id === dados.id ? { ...m, ...dados } : m)
           };
         });
-        toast.success("Meta atualizada!");
+        toast.success("Meta updated!");
       }
     } else if (tipoDialogo === "submeta") {
       if (modoDialogo === "criar" && idObjetivoAtivo && idMetaAtiva) {
@@ -284,7 +388,7 @@ export default function Home() {
 
   // Redefinir para dados de fábrica
   const handleLimparDados = () => {
-    if (confirm("Deseja redefinir o painel para os dados iniciais? Todas as suas alterações serão perdidas.")) {
+    if (confirm("Deseja redefinir o painel para os dados iniciais? Todas as suas alterações locais e na nuvem serão perdidas.")) {
       salvarDados(DADOS_INICIAIS);
       toast.info("Dados redefinidos com sucesso!");
     }
@@ -303,15 +407,22 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground selection:bg-primary/20">
-      {/* Barra Lateral Esquerda (Navegação & Redefinição) */}
-      <SidebarDashboard onLimparDados={handleLimparDados} onCriarObjetivo={abrirCriarObjetivo} />
+      {/* Barra Lateral Esquerda */}
+      <SidebarDashboard 
+        onLimparDados={handleLimparDados} 
+        onCriarObjetivo={abrirCriarObjetivo}
+        githubUser={githubUser}
+        syncStatus={syncStatus}
+        onLoginClick={() => setLoginDialogOpen(true)}
+        onLogoutClick={handleLogoutGitHub}
+      />
 
       {/* Conteúdo Principal do Dashboard */}
       <main className="flex-1 p-6 lg:p-10 space-y-8 overflow-y-auto max-w-6xl mx-auto w-full">
         {/* Header Principal com Big Numbers diretamente no topo */}
         <HeaderDashboard objetivos={objetivos} />
 
-        {/* Seção da Timeline de Objetivos e Metas LOGO ABAIXO */}
+        {/* Seção da Timeline de Objetivos e Metas */}
         <div className="space-y-4 pt-2">
           <TimelineLinhas 
             objetivos={objetivos}
@@ -345,6 +456,13 @@ export default function Home() {
         dadosIniciais={dadosEdicao}
         onSave={handleSaveDialogo}
         onDelete={handleDelete}
+      />
+
+      {/* Diálogo de Login do GitHub */}
+      <DialogoLoginGitHub
+        isOpen={loginDialogOpen}
+        onClose={() => setLoginDialogOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

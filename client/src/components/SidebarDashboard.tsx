@@ -4,18 +4,35 @@ import {
   Calendar, 
   Plus,
   Sparkles,
-  LogOut
+  LogOut,
+  Github,
+  Cloud,
+  CloudLightning,
+  CloudOff,
+  RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { GitHubUser, SyncStatus } from "@/lib/githubService";
 
 interface SidebarDashboardProps {
   onCriarObjetivo: () => void;
   onLimparDados: () => void;
+  githubUser: GitHubUser | null;
+  syncStatus: SyncStatus;
+  onLoginClick: () => void;
+  onLogoutClick: () => void;
 }
 
-export default function SidebarDashboard({ onCriarObjetivo, onLimparDados }: SidebarDashboardProps) {
+export default function SidebarDashboard({ 
+  onCriarObjetivo, 
+  onLimparDados,
+  githubUser,
+  syncStatus,
+  onLoginClick,
+  onLogoutClick
+}: SidebarDashboardProps) {
   return (
-    <aside className="w-full lg:w-64 bg-card text-card-foreground border-b lg:border-b-0 lg:border-r border-border/80 p-6 flex flex-col justify-between gap-6 lg:min-h-screen">
+    <aside className="w-full lg:w-64 bg-card text-card-foreground border-b lg:border-b-0 lg:border-r border-border/80 p-6 flex flex-col justify-between gap-6 lg:min-h-screen shrink-0">
       <div className="space-y-6">
         {/* Logo / Branding */}
         <div className="flex items-center gap-2.5 px-2">
@@ -60,6 +77,86 @@ export default function SidebarDashboard({ onCriarObjetivo, onLimparDados }: Sid
             Visão Mensal
           </button>
         </nav>
+
+        {/* Widget de Sincronização do GitHub */}
+        <div className="space-y-2 pt-2 border-t border-border/40">
+          <span className="text-[10px] font-bold text-muted-foreground px-2 uppercase tracking-wider block mb-1">
+            Nuvem & Backup
+          </span>
+
+          {githubUser ? (
+            /* Conectado */
+            <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-3.5 space-y-3">
+              <div className="flex items-center gap-2">
+                <img 
+                  src={githubUser.avatar_url} 
+                  alt={githubUser.name} 
+                  className="w-7 h-7 rounded-full border border-emerald-500/20 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-bold text-foreground block truncate">
+                    {githubUser.name}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground block truncate">
+                    @{githubUser.login}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status de Sincronização */}
+              <div className="flex items-center gap-2 text-[10px] font-medium">
+                {syncStatus.status === "syncing" && (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                    <span className="text-amber-500 font-semibold">{syncStatus.message || "Sincronizando..."}</span>
+                  </>
+                )}
+                {syncStatus.status === "success" && (
+                  <>
+                    <Cloud className="w-3.5 h-3.5 text-emerald-500" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-emerald-500 font-bold block">Online & Sincronizado</span>
+                      {syncStatus.lastSync && (
+                        <span className="text-[8px] text-muted-foreground block">Última sync: {syncStatus.lastSync}</span>
+                      )}
+                    </div>
+                  </>
+                )}
+                {syncStatus.status === "error" && (
+                  <>
+                    <CloudLightning className="w-3.5 h-3.5 text-destructive animate-pulse" />
+                    <span className="text-destructive font-bold">{syncStatus.message || "Erro de conexão"}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Botão de Desconectar */}
+              <button 
+                onClick={onLogoutClick}
+                className="w-full bg-secondary/40 hover:bg-secondary/80 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-all py-1.5 rounded-lg border border-border/40"
+              >
+                Desconectar GitHub
+              </button>
+            </div>
+          ) : (
+            /* Desconectado */
+            <div className="bg-secondary/10 border border-border/40 rounded-xl p-3.5 space-y-2.5">
+              <div className="flex items-start gap-2">
+                <CloudOff className="w-4 h-4 text-muted-foreground/80 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Seus dados estão salvos apenas neste navegador. Conecte ao GitHub para backup em nuvem permanente.
+                </p>
+              </div>
+              <Button 
+                onClick={onLoginClick}
+                className="w-full bg-foreground text-background hover:bg-foreground/90 text-xs font-bold py-2 rounded-lg flex items-center justify-center gap-1.5"
+              >
+                <Github className="w-3.5 h-3.5" />
+                Conectar GitHub
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Seção Inferior / Controles */}
