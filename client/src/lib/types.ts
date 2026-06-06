@@ -251,3 +251,32 @@ export const DADOS_INICIAIS: Objetivo[] = [
     ]
   }
 ];
+
+// --- Tipos para o Desafio de Dias Corridos (Desafio 100 Dias) ---
+
+export interface RegraRecorrencia {
+  id: string;
+  nome: string;
+  tipo: "diaria" | "intervalo";
+  intervaloDias?: number; // Ex: a cada 2 dias, a cada 10 dias
+  dataCriacao: string; // ISO string ou timestamp
+}
+
+export interface TarefaDia {
+  id: string;
+  nome: string;
+  concluida: boolean;
+  regraId?: string; // Vinculado a uma regra de recorrência, se houver
+}
+
+export interface DiaCorrido {
+  numero: number; // Dia 1, Dia 2, etc.
+  concluido: boolean; // Se todas as tarefas do dia foram feitas
+  tarefas: TarefaDia[];
+}
+
+export interface DesafioDiasData {
+  totalDias: number; // Ex: 100, 200, etc.
+  regras: RegraRecorrencia[];
+  dias: Record<number, DiaCorrido>; // Chave é o número do dia (ex: 1, 2, 3...)
+}

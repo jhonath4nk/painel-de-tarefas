@@ -1,8 +1,6 @@
-import { Objetivo } from "./types";
+import { Objetivo, DesafioDiasData } from "./types";
 import { criptografar, descriptografar } from "./cripto";
 
-// Usamos o mantledb.sh como um banco de dados JSON na nuvem gratuito, anônimo e instantâneo.
-// Namespace exclusivo e chave de escrita segura gerados para o usuário Jhonathan.
 const NAMESPACE = "jhonathan-metas-dashboard";
 const WRITE_KEY = "67873783eef7d5502b1b5416e454b3ff0933fbc8f223b242323ba0d0ee49fa51";
 const API_URL = `https://mantledb.sh/v2/${NAMESPACE}/metas_data`;
@@ -13,14 +11,27 @@ export type CloudSyncStatus = {
   lastSync?: string;
 };
 
+// Interface do payload unificado que salvamos na nuvem
+export interface PayloadUnificado {
+  objetivos: Objetivo[];
+  desafioDias?: DesafioDiasData;
+}
+
 /**
- * Salva as metas criptografadas na nuvem.
- * Usa a senha do usuário como chave para a criptografia AES-256.
+ * Salva os objetivos e o desafio de dias de forma unificada e criptografada na nuvem.
  */
-export async function salvarNaNuvem(dados: Objetivo[], senha: string): Promise<boolean> {
+export async function salvarNaNuvem(
+  objetivos: Objetivo[],
+  desafioDias: DesafioDiasData | undefined,
+  senha: string
+): Promise<boolean> {
   try {
-    const jsonStr = JSON.stringify(dados);
-    // Criptografar os dados antes de enviar à nuvem
+    const payload: PayloadUnificado = {
+      objetivos,
+      desafioDias
+    };
+    
+    const jsonStr = JSON.stringify(payload);
     const dadosCriptografados = await criptografar(jsonStr, senha);
 
     const response = await fetch(API_URL, {
@@ -44,16 +55,14 @@ export async function salvarNaNuvem(dados: Objetivo[], senha: string): Promise<b
 }
 
 /**
- * Recupera as metas da nuvem e as descriptografa.
- * Usa a senha do usuário para a descriptografia AES-256.
- * Se não houver dados na nuvem, retorna null para que possamos usar os dados locais ou iniciais.
+ * Recupera os dados da nuvem e retorna os objetivos e o desafio de dias descriptografados.
+ * Trata retrocompatibilidade caso o payload na nuvem seja do formato antigo (apenas array de Objetivos).
  */
-export async function carregarDaNuvem(senha: string): Promise<Objetivo[] | null> {
+export async function carregarDaNuvem(senha: string): Promise<PayloadUnificado | null> {
   try {
     const response = await fetch(API_URL);
     
     if (response.status === 404) {
-      // Nenhum dado salvo na nuvem ainda
       return null;
     }
 
@@ -66,11 +75,21 @@ export async function carregarDaNuvem(senha: string): Promise<Objetivo[] | null>
       return null;
     }
 
-    // Descriptografar usando a senha do usuário
     const jsonStr = await descriptografar(data.payload, senha);
-    return JSON.parse(jsonStr) as Objetivo[];
+    const parsed = JSON.parse(jsonStr);
+
+    // Se for o formato antigo (apenas um array de objetivos)
+    if (Array.isArray(parsed)) {
+      return {
+        objetivos: parsed,
+        desafioDias: undefined
+      };
+    }
+
+    // Se for o formato novo (objeto com objetivos e desafioDias)
+    return parsed as PayloadUnificado;
   } catch (error) {
     console.error("Erro ao carregar da nuvem:", error);
-    throw error; // Repassar o erro para que a interface possa identificar senha incorreta
+    throw error;
   }
 }

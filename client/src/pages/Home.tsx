@@ -1,16 +1,21 @@
-import { useState, useEffect } from "react";
-import { Objetivo, Meta, Submeta, Etapa, DADOS_INICIAIS } from "@/lib/types";
+import React, { useState, useEffect } from "react";
+import { Objetivo, Meta, Submeta, Etapa, DADOS_INICIAIS, DesafioDiasData } from "@/lib/types";
 import HeaderDashboard from "@/components/HeaderDashboard";
 import TimelineLinhas from "@/components/TimelineLinhas";
 import DialogoEdicao from "@/components/DialogoEdicao";
 import DialogoLoginUsuario from "@/components/DialogoLoginUsuario";
+import { AbaDesafioDias } from "@/components/AbaDesafioDias";
+import { inicializarDesafio } from "@/lib/desafioHelper";
 import { toast } from "sonner";
-import { RefreshCw, Lock, LogOut, Plus, Cloud, CloudOff, CloudLightning } from "lucide-react";
+import { RefreshCw, Lock, LogOut, Plus, Cloud, CloudOff, CloudLightning, Calendar, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { carregarDaNuvem, salvarNaNuvem, CloudSyncStatus } from "@/lib/cloudService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
   const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
+  const [desafioData, setDesafioData] = useState<DesafioDiasData>(inicializarDesafio());
+  const [abaAtiva, setAbaAtiva] = useState<string>("dashboard");
   const [isCarregado, setIsCarregado] = useState(false);
 
   // Estado de Autenticação do Usuário Jhonathan
@@ -38,7 +43,7 @@ export default function Home() {
       const sessaoLogin = sessionStorage.getItem("jhonathan_autenticado");
       const senhaSalva = sessionStorage.getItem("jhonathan_senha");
       
-      // 2. Carregar dados locais temporariamente como fallback
+      // 2. Carregar dados locais temporariamente como fallback (Objetivos)
       const dadosSalvos = localStorage.getItem("tidly_objetivos");
       let dadosIniciaisParaUsar = DADOS_INICIAIS;
       if (dadosSalvos) {
@@ -50,11 +55,23 @@ export default function Home() {
       }
       setObjetivos(dadosIniciaisParaUsar);
 
+      // 3. Carregar dados locais temporariamente como fallback (Desafio de Dias)
+      const desafioSalvo = localStorage.getItem("tidly_desafio_dias");
+      let desafioInicialParaUsar = inicializarDesafio();
+      if (desafioSalvo) {
+        try {
+          desafioInicialParaUsar = JSON.parse(desafioSalvo);
+        } catch {
+          desafioInicialParaUsar = inicializarDesafio();
+        }
+      }
+      setDesafioData(desafioInicialParaUsar);
+
       if (sessaoLogin === "true" && senhaSalva) {
         setAutenticado(true);
         setSenhaDigitada(senhaSalva);
         // Sincronizar com a nuvem usando a senha da sessão
-        await sincronizarComNuvem(senhaSalva, dadosIniciaisParaUsar);
+        await sincronizarComNuvem(senhaSalva, dadosIniciaisParaUsar, desafioInicialParaUsar);
       } else {
         setIsCarregado(true);
       }
@@ -64,14 +81,20 @@ export default function Home() {
   }, []);
 
   // Sincronizar dados com a nuvem (Carrega e envia se necessário)
-  const sincronizarComNuvem = async (senha: string, dadosLocais: Objetivo[]) => {
+  const sincronizarComNuvem = async (senha: string, dadosLocais: Objetivo[], desafioLocal: DesafioDiasData) => {
     setSyncStatus({ status: "syncing", message: "Buscando dados na nuvem..." });
     try {
-      const dadosNuvem = await carregarDaNuvem(senha);
-      if (dadosNuvem) {
-        // Dados carregados com sucesso da nuvem (descriptografados)
-        setObjetivos(dadosNuvem);
-        localStorage.setItem("tidly_objetivos", JSON.stringify(dadosNuvem));
+      const payloadNuvem = await carregarDaNuvem(senha);
+      if (payloadNuvem) {
+        // Objetivos carregados
+        setObjetivos(payloadNuvem.objetivos);
+        localStorage.setItem("tidly_objetivos", JSON.stringify(payloadNuvem.objetivos));
+
+        // Desafio de Dias carregado (ou inicializa se não houver no banco ainda)
+        const desafioParaUsar = payloadNuvem.desafioDias || desafioLocal;
+        setDesafioData(desafioParaUsar);
+        localStorage.setItem("tidly_desafio_dias", JSON.stringify(desafioParaUsar));
+
         setSyncStatus({
           status: "success",
           lastSync: new Date().toLocaleTimeString(),
@@ -79,7 +102,7 @@ export default function Home() {
         });
       } else {
         // Primeira vez ou nuvem vazia, vamos subir os dados locais
-        await salvarNaNuvem(dadosLocais, senha);
+        await salvarNaNuvem(dadosLocais, desafioLocal, senha);
         setSyncStatus({
           status: "success",
           lastSync: new Date().toLocaleTimeString(),
@@ -103,7 +126,7 @@ export default function Home() {
     sessionStorage.setItem("jhonathan_senha", senha);
     
     // Forçar carregamento imediato da nuvem após o login correto
-    await sincronizarComNuvem(senha, objetivos);
+    await sincronizarComNuvem(senha, objetivos, desafioData);
   };
 
   // Tratar logout do Jhonathan
@@ -116,14 +139,35 @@ export default function Home() {
     toast.info("Sessão encerrada. Modo de visualização ativo.");
   };
 
-  // Salvar dados (Localmente e na Nuvem se estiver autenticado)
+  // Salvar dados de objetivos (Localmente e na Nuvem se estiver autenticado)
   const salvarDados = async (novosObjetivos: Objetivo[]) => {
     setObjetivos(novosObjetivos);
     localStorage.setItem("tidly_objetivos", JSON.stringify(novosObjetivos));
 
     if (autenticado && senhaDigitada) {
       setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
-      const sucesso = await salvarNaNuvem(novosObjetivos, senhaDigitada);
+      const sucesso = await salvarNaNuvem(novosObjetivos, desafioData, senhaDigitada);
+      if (sucesso) {
+        setSyncStatus({
+          status: "success",
+          lastSync: new Date().toLocaleTimeString(),
+          message: "Sincronizado"
+        });
+      } else {
+        setSyncStatus({ status: "error", message: "Erro ao salvar na nuvem." });
+        toast.error("Falha ao salvar alterações na nuvem. Tentando novamente...");
+      }
+    }
+  };
+
+  // Salvar dados do desafio de dias (Localmente e na Nuvem se estiver autenticado)
+  const salvarDadosDesafio = async (novoDesafio: DesafioDiasData) => {
+    setDesafioData(novoDesafio);
+    localStorage.setItem("tidly_desafio_dias", JSON.stringify(novoDesafio));
+
+    if (autenticado && senhaDigitada) {
+      setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
+      const sucesso = await salvarNaNuvem(objetivos, novoDesafio, senhaDigitada);
       if (sucesso) {
         setSyncStatus({
           status: "success",
@@ -140,26 +184,21 @@ export default function Home() {
   // Alternar conclusão de submeta (Etapas filhas herdam)
   const handleToggleSubmeta = (objetivoId: string, metaId: string, submetaId: string) => {
     if (!autenticado) return;
-    const novosObjetivos = objetivos.map(obj => {
-      if (obj.id !== objetivoId) return obj;
+    const novosObjetivos = objetivos.map(o => {
+      if (o.id !== objetivoId) return o;
       return {
-        ...obj,
-        metas: obj.metas.map(meta => {
-          if (meta.id !== metaId) return meta;
+        ...o,
+        metas: o.metas.map(m => {
+          if (m.id !== metaId) return m;
           return {
-            ...meta,
-            submetas: meta.submetas.map(sub => {
-              if (sub.id !== submetaId) return sub;
-              const novoEstado = !sub.concluida;
-              const novasEtapas = sub.etapas?.map(e => ({ ...e, concluida: novoEstado })) || [];
-              
-              if (novoEstado) {
-                toast.success(`Submeta "${sub.nome}" concluída!`);
-              }
-              return { 
-                ...sub, 
+            ...m,
+            submetas: m.submetas.map(s => {
+              if (s.id !== submetaId) return s;
+              const novoEstado = !s.concluida;
+              return {
+                ...s,
                 concluida: novoEstado,
-                etapas: novasEtapas
+                etapas: s.etapas.map(et => ({ ...et, concluida: novoEstado }))
               };
             })
           };
@@ -169,39 +208,28 @@ export default function Home() {
     salvarDados(novosObjetivos);
   };
 
-  // Alternar conclusão de uma Etapa específica
+  // Alternar conclusão de etapa filha (Afeta a conclusão da submeta pai)
   const handleToggleEtapa = (objetivoId: string, metaId: string, submetaId: string, etapaId: string) => {
     if (!autenticado) return;
-    const novosObjetivos = objetivos.map(obj => {
-      if (obj.id !== objetivoId) return obj;
+    const novosObjetivos = objetivos.map(o => {
+      if (o.id !== objetivoId) return o;
       return {
-        ...obj,
-        metas: obj.metas.map(meta => {
-          if (meta.id !== metaId) return meta;
+        ...o,
+        metas: o.metas.map(m => {
+          if (m.id !== metaId) return m;
           return {
-            ...meta,
-            submetas: meta.submetas.map(sub => {
-              if (sub.id !== submetaId) return sub;
-              
-              const novasEtapas = sub.etapas.map(etapa => {
-                if (etapa.id !== etapaId) return etapa;
-                const novoEstado = !etapa.concluida;
-                if (novoEstado) {
-                  toast.success(`Etapa "${etapa.nome}" concluída!`);
-                }
-                return { ...etapa, concluida: novoEstado };
+            ...m,
+            submetas: m.submetas.map(s => {
+              if (s.id !== submetaId) return s;
+              const novasEtapas = s.etapas.map(et => {
+                if (et.id !== etapaId) return et;
+                return { ...et, concluida: !et.concluida };
               });
-
-              const todasConcluidas = novasEtapas.length > 0 && novasEtapas.every(e => e.concluida);
-              
-              if (todasConcluidas && !sub.concluida) {
-                toast.success(`Todas as etapas de "${sub.nome}" foram concluídas!`);
-              }
-
+              const todasConcluidas = novasEtapas.every(et => et.concluida);
               return {
-                ...sub,
-                etapas: novasEtapas,
-                concluida: todasConcluidas
+                ...s,
+                concluida: todasConcluidas,
+                etapas: novasEtapas
               };
             })
           };
@@ -308,7 +336,6 @@ export default function Home() {
         ...o,
         metas: o.metas.filter(m => m.id !== dadosEdicao.id)
       }));
-      toast.error("Meta excluída!");
     } else if (tipoDialogo === "submeta" && dadosEdicao) {
       novosObjetivos = novosObjetivos.map(o => ({
         ...o,
@@ -425,18 +452,46 @@ export default function Home() {
             )}
           </div>
 
+          {/* Seletor de Abas Centralizado de Alto Padrão */}
+          <div className="flex bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 text-xs">
+            <button
+              onClick={() => setAbaAtiva("dashboard")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold transition-all ${
+                abaAtiva === "dashboard" 
+                  ? "bg-zinc-900 text-white shadow" 
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Metas & OKRs</span>
+            </button>
+            <button
+              onClick={() => setAbaAtiva("desafio")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-bold transition-all ${
+                abaAtiva === "desafio" 
+                  ? "bg-zinc-900 text-emerald-400 shadow" 
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Desafio 100 Dias</span>
+            </button>
+          </div>
+
           {/* Ações e Autenticação */}
           <div className="flex items-center gap-2">
             {autenticado ? (
               <>
-                <Button 
-                  onClick={abrirCriarObjetivo}
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1 text-xs px-3 h-8 rounded-lg"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Novo Objetivo</span>
-                </Button>
+                {abaAtiva === "dashboard" && (
+                  <Button 
+                    onClick={abrirCriarObjetivo}
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1 text-xs px-3 h-8 rounded-lg"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Novo Objetivo</span>
+                  </Button>
+                )}
                 <Button 
                   onClick={handleLogoutUsuario}
                   variant="ghost"
@@ -464,23 +519,33 @@ export default function Home() {
 
       {/* Conteúdo Principal do Dashboard */}
       <main className="p-6 lg:p-10 space-y-8 max-w-6xl mx-auto w-full">
-        {/* Header Principal com Big Numbers diretamente no topo */}
-        <HeaderDashboard objetivos={objetivos} />
+        {abaAtiva === "dashboard" ? (
+          <>
+            {/* Header Principal com Big Numbers diretamente no topo */}
+            <HeaderDashboard objetivos={objetivos} />
 
-        {/* Seção da Timeline de Objetivos e Metas */}
-        <div className="space-y-4 pt-2">
-          <TimelineLinhas 
-            objetivos={objetivos}
-            onToggleSubmeta={handleToggleSubmeta}
-            onToggleEtapa={handleToggleEtapa}
-            onEditarObjetivo={abrirEditarObjetivo}
-            onEditarMeta={abrirEditarMeta}
-            onEditarSubmeta={abrirEditarSubmeta}
-            onCriarMeta={abrirCriarMeta}
-            onCriarSubmeta={abrirCriarSubmeta}
+            {/* Seção da Timeline de Objetivos e Metas */}
+            <div className="space-y-4 pt-2">
+              <TimelineLinhas 
+                objetivos={objetivos}
+                onToggleSubmeta={handleToggleSubmeta}
+                onToggleEtapa={handleToggleEtapa}
+                onEditarObjetivo={abrirEditarObjetivo}
+                onEditarMeta={abrirEditarMeta}
+                onEditarSubmeta={abrirEditarSubmeta}
+                onCriarMeta={abrirCriarMeta}
+                onCriarSubmeta={abrirCriarSubmeta}
+                autenticado={autenticado}
+              />
+            </div>
+          </>
+        ) : (
+          <AbaDesafioDias 
+            desafioData={desafioData}
+            onChange={salvarDadosDesafio}
             autenticado={autenticado}
           />
-        </div>
+        )}
 
         {/* Rodapé Oculto/Discreto v6 e Créditos de Design */}
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
