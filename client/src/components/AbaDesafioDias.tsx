@@ -147,9 +147,16 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
     const novasRegras = [...desafioData.regras, novaRegra];
     const novosDias = { ...desafioData.dias };
 
-    // Aplicar a nova regra retroativamente nos dias não concluídos e futuros
+    // Aplicar a nova regra retroativamente apenas nos dias NÃO concluídos
     for (let d = 1; d <= desafioData.totalDias; d++) {
       const dia = novosDias[d] || { numero: d, concluido: false, tarefas: [] };
+      
+      // Regra de Ouro: Se o dia já está concluído, NUNCA adicionamos a nova tarefa nele,
+      // preservando totalmente o histórico de sucesso do usuário no passado.
+      if (dia.concluido) {
+        continue;
+      }
+
       let deveIncluir = false;
 
       if (novaRegra.tipo === "diaria") {
@@ -172,7 +179,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         novosDias[d] = {
           ...dia,
           tarefas: novasTarefas,
-          concluido: novasTarefas.length > 0 ? novasTarefas.every((t) => t.concluida) : false
+          concluido: false // Como tem uma nova tarefa não concluída, esse dia que já estava pendente continua pendente
         };
       }
     }
