@@ -10,7 +10,7 @@ import { Lock, User } from "lucide-react";
 interface DialogoLoginUsuarioProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (senha: string) => void;
 }
 
 export default function DialogoLoginUsuario({ isOpen, onClose, onLoginSuccess }: DialogoLoginUsuarioProps) {
@@ -32,7 +32,7 @@ export default function DialogoLoginUsuario({ isOpen, onClose, onLoginSuccess }:
       // Validação segura com hash criptográfico
       if (usuario.trim().toLowerCase() === USUARIO_ESPERADO.toLowerCase() && hashDigitado === SENHA_HASH_ESPERADA) {
         toast.success(`Bem-vindo de volta, ${USUARIO_ESPERADO}!`);
-        onLoginSuccess();
+        onLoginSuccess(senha);
         setUsuario("");
         setSenha("");
         onClose();

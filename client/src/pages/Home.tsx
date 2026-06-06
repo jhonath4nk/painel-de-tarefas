@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Objetivo, Meta, Submeta, Etapa, DADOS_INICIAIS } from "@/lib/types";
 import HeaderDashboard from "@/components/HeaderDashboard";
 import TimelineLinhas from "@/components/TimelineLinhas";
 import DialogoEdicao from "@/components/DialogoEdicao";
 import DialogoLoginUsuario from "@/components/DialogoLoginUsuario";
 import { toast } from "sonner";
-import { RefreshCw, Lock, LogOut, Plus, Cloud, CloudOff } from "lucide-react";
+import { RefreshCw, Lock, LogOut, Plus, Cloud, CloudOff, CloudLightning } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GitHubUser, SyncStatus, sincronizarGist, atualizarGist } from "@/lib/githubService";
+import { carregarDaNuvem, salvarNaNuvem, CloudSyncStatus } from "@/lib/cloudService";
 
 export default function Home() {
   const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
@@ -16,6 +16,7 @@ export default function Home() {
   // Estado de Autenticação do Usuário Jhonathan
   const [autenticado, setAutenticado] = useState(false);
   const [loginUsuarioAberto, setLoginUsuarioAberto] = useState(false);
+  const [senhaDigitada, setSenhaDigitada] = useState<string>("");
 
   // Estados dos Diálogos
   const [dialogoAberto, setDialogoAberto] = useState(false);
@@ -27,22 +28,17 @@ export default function Home() {
   const [idObjetivoAtivo, setIdObjetivoAtivo] = useState<string | null>(null);
   const [idMetaAtiva, setIdMetaAtiva] = useState<string | null>(null);
 
-  // Estados de Sincronização do GitHub (Sincroniza em segundo plano se o token estiver no LocalStorage)
-  const [githubToken, setGithubToken] = useState<string | null>(null);
-  const [githubUser, setGithubUser] = useState<GitHubUser | null>(null);
-  const [gistId, setGistId] = useState<string | null>(null);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>({ status: "idle" });
+  // Estado de Sincronização em Nuvem (Automático e Seguro)
+  const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>({ status: "idle" });
 
   // Carregar dados iniciais e verificar login persistido na sessão
   useEffect(() => {
     const inicializar = async () => {
       // 1. Verificar se o usuário está logado nesta sessão (SessionStorage para segurança)
       const sessaoLogin = sessionStorage.getItem("jhonathan_autenticado");
-      if (sessaoLogin === "true") {
-        setAutenticado(true);
-      }
-
-      // 2. Carregar dados locais temporariamente
+      const senhaSalva = sessionStorage.getItem("jhonathan_senha");
+      
+      // 2. Carregar dados locais temporariamente como fallback
       const dadosSalvos = localStorage.getItem("tidly_objetivos");
       let dadosIniciaisParaUsar = DADOS_INICIAIS;
       if (dadosSalvos) {
@@ -54,71 +50,89 @@ export default function Home() {
       }
       setObjetivos(dadosIniciaisParaUsar);
 
-      // 3. Sincronizar silenciosamente com o GitHub se o token estiver salvo
-      const tokenSalvo = localStorage.getItem("tidly_github_token");
-      const gistIdSalvo = localStorage.getItem("tidly_github_gist_id");
-      const userSalvo = localStorage.getItem("tidly_github_user");
-
-      if (tokenSalvo && gistIdSalvo && userSalvo) {
-        try {
-          setSyncStatus({ status: "syncing", message: "Sincronizando..." });
-          const user = JSON.parse(userSalvo);
-          setGithubToken(tokenSalvo);
-          setGithubUser(user);
-          setGistId(gistIdSalvo);
-
-          const resultado = await sincronizarGist(tokenSalvo, dadosIniciaisParaUsar);
-          setGistId(resultado.gistId);
-          setObjetivos(resultado.dados);
-          localStorage.setItem("tidly_objetivos", JSON.stringify(resultado.dados));
-          localStorage.setItem("tidly_github_gist_id", resultado.gistId);
-          
-          setSyncStatus({ 
-            status: "success", 
-            lastSync: new Date().toLocaleTimeString(),
-            message: "Sincronizado" 
-          });
-        } catch (err) {
-          console.error("Erro de sincronização em segundo plano", err);
-          setSyncStatus({ status: "error", message: "Erro de conexão." });
-        }
+      if (sessaoLogin === "true" && senhaSalva) {
+        setAutenticado(true);
+        setSenhaDigitada(senhaSalva);
+        // Sincronizar com a nuvem usando a senha da sessão
+        await sincronizarComNuvem(senhaSalva, dadosIniciaisParaUsar);
+      } else {
+        setIsCarregado(true);
       }
-      setIsCarregado(true);
     };
 
     inicializar();
   }, []);
 
+  // Sincronizar dados com a nuvem (Carrega e envia se necessário)
+  const sincronizarComNuvem = async (senha: string, dadosLocais: Objetivo[]) => {
+    setSyncStatus({ status: "syncing", message: "Buscando dados na nuvem..." });
+    try {
+      const dadosNuvem = await carregarDaNuvem(senha);
+      if (dadosNuvem) {
+        // Dados carregados com sucesso da nuvem (descriptografados)
+        setObjetivos(dadosNuvem);
+        localStorage.setItem("tidly_objetivos", JSON.stringify(dadosNuvem));
+        setSyncStatus({
+          status: "success",
+          lastSync: new Date().toLocaleTimeString(),
+          message: "Sincronizado com a Nuvem"
+        });
+      } else {
+        // Primeira vez ou nuvem vazia, vamos subir os dados locais
+        await salvarNaNuvem(dadosLocais, senha);
+        setSyncStatus({
+          status: "success",
+          lastSync: new Date().toLocaleTimeString(),
+          message: "Nuvem inicializada"
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao sincronizar com a nuvem:", err);
+      setSyncStatus({ status: "error", message: "Erro de conexão com a nuvem." });
+      toast.error("Não foi possível conectar ao banco de dados na nuvem.");
+    } finally {
+      setIsCarregado(true);
+    }
+  };
+
   // Tratar sucesso de login do Jhonathan
-  const handleLoginUsuarioSuccess = () => {
+  const handleLoginUsuarioSuccess = async (senha: string) => {
     setAutenticado(true);
+    setSenhaDigitada(senha);
     sessionStorage.setItem("jhonathan_autenticado", "true");
+    sessionStorage.setItem("jhonathan_senha", senha);
+    
+    // Forçar carregamento imediato da nuvem após o login correto
+    await sincronizarComNuvem(senha, objetivos);
   };
 
   // Tratar logout do Jhonathan
   const handleLogoutUsuario = () => {
     setAutenticado(false);
+    setSenhaDigitada("");
     sessionStorage.removeItem("jhonathan_autenticado");
+    sessionStorage.removeItem("jhonathan_senha");
+    setSyncStatus({ status: "idle" });
     toast.info("Sessão encerrada. Modo de visualização ativo.");
   };
 
-  // Salvar dados (Localmente e na Nuvem se houver token)
+  // Salvar dados (Localmente e na Nuvem se estiver autenticado)
   const salvarDados = async (novosObjetivos: Objetivo[]) => {
     setObjetivos(novosObjetivos);
     localStorage.setItem("tidly_objetivos", JSON.stringify(novosObjetivos));
 
-    if (githubToken && gistId) {
-      setSyncStatus({ status: "syncing", message: "Salvando..." });
-      try {
-        await atualizarGist(githubToken, gistId, novosObjetivos);
-        setSyncStatus({ 
-          status: "success", 
+    if (autenticado && senhaDigitada) {
+      setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
+      const sucesso = await salvarNaNuvem(novosObjetivos, senhaDigitada);
+      if (sucesso) {
+        setSyncStatus({
+          status: "success",
           lastSync: new Date().toLocaleTimeString(),
-          message: "Salvo na Nuvem" 
+          message: "Sincronizado"
         });
-      } catch (err) {
-        console.error("Erro ao salvar no Gist", err);
-        setSyncStatus({ status: "error", message: "Erro ao salvar." });
+      } else {
+        setSyncStatus({ status: "error", message: "Erro ao salvar na nuvem." });
+        toast.error("Falha ao salvar alterações na nuvem. Tentando novamente...");
       }
     }
   };
@@ -373,7 +387,7 @@ export default function Home() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-          <span className="text-sm font-medium text-muted-foreground">Carregando painel...</span>
+          <span className="text-sm font-medium text-muted-foreground">Sincronizando banco de dados...</span>
         </div>
       </div>
     );
@@ -384,21 +398,30 @@ export default function Home() {
       {/* Barra de Controle Superior (Login, Status de Sincronização, Criar Objetivo) */}
       <div className="border-b border-border/40 bg-card/40 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-          {/* Status de Sincronização da Nuvem (GitHub) */}
+          {/* Status de Sincronização da Nuvem (KVDB Seguro) */}
           <div className="flex items-center gap-2">
-            {githubToken ? (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                <Cloud className="w-3.5 h-3.5" />
-                <span>Nuvem Ativa</span>
-              </div>
+            {autenticado ? (
+              syncStatus.status === "syncing" ? (
+                <div className="flex items-center gap-1.5 text-xs text-amber-400 font-medium bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Sincronizando...</span>
+                </div>
+              ) : syncStatus.status === "error" ? (
+                <div className="flex items-center gap-1.5 text-xs text-red-400 font-medium bg-red-500/10 px-2.5 py-1 rounded-full border border-red-500/20">
+                  <CloudLightning className="w-3.5 h-3.5" />
+                  <span>Erro de Sincronização</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20" title={`Último salvamento: ${syncStatus.lastSync || 'Agora'}`}>
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>Nuvem Sincronizada</span>
+                </div>
+              )
             ) : (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium bg-secondary/60 px-2.5 py-1 rounded-full border border-border/40">
                 <CloudOff className="w-3.5 h-3.5" />
-                <span>Modo Local</span>
+                <span>Modo Leitura</span>
               </div>
-            )}
-            {syncStatus.status === "syncing" && (
-              <span className="text-[10px] text-muted-foreground animate-pulse">Salvando...</span>
             )}
           </div>
 
@@ -481,7 +504,7 @@ export default function Home() {
         onDelete={handleDelete}
       />
 
-      {/* Diálogo de Login Local (Jhonathan) */}
+      {/* Diálogo de Autenticação de Usuário */}
       <DialogoLoginUsuario
         isOpen={loginUsuarioAberto}
         onClose={() => setLoginUsuarioAberto(false)}
