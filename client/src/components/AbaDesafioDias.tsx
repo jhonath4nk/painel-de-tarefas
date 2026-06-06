@@ -58,7 +58,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
   }, [desafioData]);
 
   const diaSelecionado = useMemo(() => {
-    return desafioData.dias[diaSelecionadoNum] || { numero: diaSelecionadoNum, concluido: false, tarefas: [] };
+    return desafioData.dias[diaSelecionadoNum] || desafioData.dias[String(diaSelecionadoNum) as any] || { numero: diaSelecionadoNum, concluido: false, tarefas: [] };
   }, [desafioData, diaSelecionadoNum]);
 
   // Filtrar os dias no grid
@@ -68,7 +68,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
     if (filtroDia === "todos") return todosDias;
     
     return todosDias.filter((num) => {
-      const dia = desafioData.dias[num];
+      const dia = desafioData.dias[num] || desafioData.dias[String(num) as any];
       if (!dia) return false;
       return filtroDia === "concluidos" ? dia.concluido : !dia.concluido;
     });
@@ -82,10 +82,11 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
     }
 
     const novosDias = { ...desafioData.dias };
-    const dia = novosDias[diaNum];
+    const diaExistente = novosDias[diaNum] || novosDias[String(diaNum) as any];
     
-    if (dia) {
-      const novasTarefas = dia.tarefas.map((t) => {
+    if (diaExistente) {
+      const dia = { ...diaExistente };
+      const novasTarefas = (dia.tarefas || []).map((t) => {
         if (t.id === tarefaId) {
           return { ...t, concluida: !t.concluida };
         }
@@ -149,7 +150,9 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
 
     // Aplicar a nova regra retroativamente apenas nos dias NÃO concluídos
     for (let d = 1; d <= desafioData.totalDias; d++) {
-      const dia = novosDias[d] || { numero: d, concluido: false, tarefas: [] };
+      // Lê de forma segura tratando chaves que podem vir como string ou número do JSON
+      const diaExistente = novosDias[d] || novosDias[String(d) as any];
+      const dia = diaExistente ? { ...diaExistente } : { numero: d, concluido: false, tarefas: [] };
       
       // Regra de Ouro: Se o dia já está concluído, NUNCA adicionamos a nova tarefa nele,
       // preservando totalmente o histórico de sucesso do usuário no passado.
@@ -167,7 +170,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
 
       if (deveIncluir) {
         const novasTarefas = [
-          ...dia.tarefas,
+          ...(dia.tarefas || []),
           {
             id: `t-${novaRegra.id}-${d}`,
             nome: novaRegra.nome,
@@ -206,9 +209,10 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
 
     // Remover as tarefas associadas a essa regra de todos os dias
     for (let d = 1; d <= desafioData.totalDias; d++) {
-      const dia = novosDias[d];
-      if (dia) {
-        const novasTarefas = dia.tarefas.filter((t) => t.regraId !== regraId);
+      const diaExistente = novosDias[d] || novosDias[String(d) as any];
+      if (diaExistente) {
+        const dia = { ...diaExistente };
+        const novasTarefas = (dia.tarefas || []).filter((t) => t.regraId !== regraId);
         novosDias[d] = {
           ...dia,
           tarefas: novasTarefas,
@@ -280,13 +284,14 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
     }
 
     const novosDias = { ...desafioData.dias };
-    const dia = novosDias[diaNum];
+    const diaExistente = novosDias[diaNum] || novosDias[String(diaNum) as any];
     
-    if (dia) {
-      const todosConcluidos = dia.tarefas.every(t => t.concluida);
+    if (diaExistente) {
+      const dia = { ...diaExistente };
+      const todosConcluidos = (dia.tarefas || []).every(t => t.concluida);
       const novoEstado = !todosConcluidos;
 
-      const novasTarefas = dia.tarefas.map(t => ({
+      const novasTarefas = (dia.tarefas || []).map(t => ({
         ...t,
         concluida: novoEstado
       }));
@@ -527,7 +532,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             ) : (
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[420px] overflow-y-auto pr-1">
                 {diasFiltrados.map((num) => {
-                  const dia = desafioData.dias[num];
+                  const dia = desafioData.dias[num] || desafioData.dias[String(num) as any];
                   const isConcluido = dia?.concluido;
                   const temTarefas = dia && dia.tarefas.length > 0;
                   const isSelecionado = num === diaSelecionadoNum;
