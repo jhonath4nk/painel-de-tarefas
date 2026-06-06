@@ -1,10 +1,11 @@
 import { Objetivo } from "./types";
 import { criptografar, descriptografar } from "./cripto";
 
-// Usamos o kvdb.io como um banco de dados KV na nuvem gratuito e instantâneo.
-// Criamos um bucket exclusivo para o usuário Jhonathan baseado em um hash único para privacidade.
-const BUCKET_ID = "bucket_jhonathan_metas_v6_secure";
-const API_URL = `https://kvdb.io/${BUCKET_ID}/dados_metas`;
+// Usamos o mantledb.sh como um banco de dados JSON na nuvem gratuito, anônimo e instantâneo.
+// Namespace exclusivo e chave de escrita segura gerados para o usuário Jhonathan.
+const NAMESPACE = "jhonathan-metas-dashboard";
+const WRITE_KEY = "67873783eef7d5502b1b5416e454b3ff0933fbc8f223b242323ba0d0ee49fa51";
+const API_URL = `https://mantledb.sh/v2/${NAMESPACE}/metas_data`;
 
 export type CloudSyncStatus = {
   status: "idle" | "syncing" | "success" | "error";
@@ -23,11 +24,12 @@ export async function salvarNaNuvem(dados: Objetivo[], senha: string): Promise<b
     const dadosCriptografados = await criptografar(jsonStr, senha);
 
     const response = await fetch(API_URL, {
-      method: "PUT",
+      method: "POST",
       headers: {
-        "Content-Type": "text/plain"
+        "Content-Type": "application/json",
+        "X-Mantle-Key": WRITE_KEY
       },
-      body: dadosCriptografados
+      body: JSON.stringify({ payload: dadosCriptografados })
     });
 
     if (!response.ok) {
@@ -59,13 +61,13 @@ export async function carregarDaNuvem(senha: string): Promise<Objetivo[] | null>
       throw new Error(`Erro na requisição: ${response.statusText}`);
     }
 
-    const dadosCriptografados = await response.text();
-    if (!dadosCriptografados || dadosCriptografados.trim() === "") {
+    const data = await response.json();
+    if (!data || !data.payload || data.payload.trim() === "") {
       return null;
     }
 
     // Descriptografar usando a senha do usuário
-    const jsonStr = await descriptografar(dadosCriptografados, senha);
+    const jsonStr = await descriptografar(data.payload, senha);
     return JSON.parse(jsonStr) as Objetivo[];
   } catch (error) {
     console.error("Erro ao carregar da nuvem:", error);
