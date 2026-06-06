@@ -31,14 +31,19 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
 
   // Estatísticas do Desafio
   const stats = useMemo(() => {
-    const total = desafioData.totalDias;
+    const total = desafioData?.totalDias || 100;
     let concluidos = 0;
     let totalTarefas = 0;
     let tarefasConcluidas = 0;
 
-    Object.values(desafioData.dias).forEach((dia) => {
+    const diasValidos = desafioData?.dias ? Object.values(desafioData.dias) : [];
+
+    diasValidos.forEach((dia) => {
+      if (!dia) return;
       if (dia.concluido) concluidos++;
-      dia.tarefas.forEach((t) => {
+      const tarefasValidas = Array.isArray(dia.tarefas) ? dia.tarefas : [];
+      tarefasValidas.forEach((t) => {
+        if (!t) return;
         totalTarefas++;
         if (t.concluida) tarefasConcluidas++;
       });

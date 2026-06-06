@@ -162,12 +162,19 @@ export default function Home() {
 
   // Salvar dados do desafio de dias (Localmente e na Nuvem se estiver autenticado)
   const salvarDadosDesafio = async (novoDesafio: DesafioDiasData) => {
-    setDesafioData(novoDesafio);
-    localStorage.setItem("tidly_desafio_dias", JSON.stringify(novoDesafio));
+    // Garantir integridade da estrutura de dados antes de atualizar o estado e salvar
+    const desafioSeguro: DesafioDiasData = {
+      totalDias: novoDesafio?.totalDias || 100,
+      regras: Array.isArray(novoDesafio?.regras) ? novoDesafio.regras : [],
+      dias: novoDesafio?.dias && typeof novoDesafio.dias === "object" ? novoDesafio.dias : {}
+    };
+
+    setDesafioData(desafioSeguro);
+    localStorage.setItem("tidly_desafio_dias", JSON.stringify(desafioSeguro));
 
     if (autenticado && senhaDigitada) {
       setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
-      const sucesso = await salvarNaNuvem(objetivos, novoDesafio, senhaDigitada);
+      const sucesso = await salvarNaNuvem(objetivos, desafioSeguro, senhaDigitada);
       if (sucesso) {
         setSyncStatus({
           status: "success",
