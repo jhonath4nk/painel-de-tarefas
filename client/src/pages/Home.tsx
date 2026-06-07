@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Objetivo, Meta, Submeta, Etapa, DADOS_INICIAIS, DesafioDiasData } from "@/lib/types";
 import HeaderDashboard from "@/components/HeaderDashboard";
 import TimelineLinhas from "@/components/TimelineLinhas";
+import ProximasTarefas from "@/components/ProximasTarefas";
 import DialogoEdicao from "@/components/DialogoEdicao";
 import DialogoLoginUsuario from "@/components/DialogoLoginUsuario";
 import { AbaDesafioDias } from "@/components/AbaDesafioDias";
@@ -630,6 +631,13 @@ export default function Home() {
             {/* Header Principal com Big Numbers diretamente no topo */}
             <HeaderDashboard objetivos={objetivos} />
 
+            {/* Componente de Próximas Tarefas com carrossel deslizante e setas diagonais */}
+            <ProximasTarefas 
+              objetivos={objetivos}
+              onToggleEtapa={handleToggleEtapa}
+              autenticado={autenticado}
+            />
+
             {/* Seção da Timeline de Objetivos e Metas */}
             <div className="space-y-4 pt-2">
               <TimelineLinhas 
@@ -658,7 +666,7 @@ export default function Home() {
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
           <span>&copy; 2026 Productivity Board. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v10</span>
+            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v11</span>
             <span>&bull;</span>
             <span>Design Notion-Flat</span>
           </div>
