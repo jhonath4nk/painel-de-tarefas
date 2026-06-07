@@ -306,6 +306,45 @@ export default function Home() {
     salvarDados(novosObjetivos);
   };
 
+  // Reordenar etapas de uma submeta (subir ou descer de posição)
+  const handleReordenarEtapa = (objetivoId: string, metaId: string, submetaId: string, etapaId: string, direcao: "subir" | "descer") => {
+    if (!autenticado) return;
+    const novosObjetivos = objetivos.map(o => {
+      if (o.id !== objetivoId) return o;
+      return {
+        ...o,
+        metas: o.metas.map(m => {
+          if (m.id !== metaId) return m;
+          return {
+            ...m,
+            submetas: m.submetas.map(s => {
+              if (s.id !== submetaId) return s;
+              const index = s.etapas.findIndex(e => e.id === etapaId);
+              if (index === -1) return s;
+              
+              const novasEtapas = [...s.etapas];
+              if (direcao === "subir" && index > 0) {
+                const temp = novasEtapas[index];
+                novasEtapas[index] = novasEtapas[index - 1];
+                novasEtapas[index - 1] = temp;
+              } else if (direcao === "descer" && index < novasEtapas.length - 1) {
+                const temp = novasEtapas[index];
+                novasEtapas[index] = novasEtapas[index + 1];
+                novasEtapas[index + 1] = temp;
+              }
+              
+              return {
+                ...s,
+                etapas: novasEtapas
+              };
+            })
+          };
+        })
+      };
+    });
+    salvarDados(novosObjetivos);
+  };
+
   // Tratar salvamento do Diálogo (Criar ou Editar)
   const handleSaveDialogo = (dados: any) => {
     if (!autenticado) return;
@@ -597,6 +636,7 @@ export default function Home() {
                 objetivos={objetivos}
                 onToggleSubmeta={handleToggleSubmeta}
                 onToggleEtapa={handleToggleEtapa}
+                onReordenarEtapa={handleReordenarEtapa}
                 onEditarObjetivo={abrirEditarObjetivo}
                 onEditarMeta={abrirEditarMeta}
                 onEditarSubmeta={abrirEditarSubmeta}
@@ -618,7 +658,7 @@ export default function Home() {
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
           <span>&copy; 2026 Productivity Board. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v9</span>
+            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v10</span>
             <span>&bull;</span>
             <span>Design Notion-Flat</span>
           </div>

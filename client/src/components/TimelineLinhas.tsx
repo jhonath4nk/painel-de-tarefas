@@ -26,6 +26,7 @@ interface TimelineLinhasProps {
   objetivos: Objetivo[];
   onToggleSubmeta: (objetivoId: string, metaId: string, submetaId: string) => void;
   onToggleEtapa: (objetivoId: string, metaId: string, submetaId: string, etapaId: string) => void;
+  onReordenarEtapa?: (objetivoId: string, metaId: string, submetaId: string, etapaId: string, direcao: "subir" | "descer") => void;
   onEditarObjetivo: (objetivo: Objetivo) => void;
   onEditarMeta: (objetivoId: string, meta: Meta) => void;
   onEditarSubmeta: (objetivoId: string, metaId: string, submeta: Submeta) => void;
@@ -45,10 +46,13 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
   Target
 };
 
+import { ChevronUp } from "lucide-react";
+
 export default function TimelineLinhas({
   objetivos,
   onToggleSubmeta,
   onToggleEtapa,
+  onReordenarEtapa,
   onEditarObjetivo,
   onEditarMeta,
   onEditarSubmeta,
@@ -444,28 +448,64 @@ export default function TimelineLinhas({
                                             </p>
                                           ) : (
                                             <div className="space-y-2 mt-2">
-                                              {sub.etapas.map((etapa) => (
+                                              {sub.etapas.map((etapa, etapaIdx) => (
                                                 <div 
                                                   key={etapa.id} 
-                                                  className={`flex items-start gap-2 p-1.5 rounded-lg transition-colors ${
-                                                    autenticado ? "hover:bg-secondary/40 cursor-pointer" : "cursor-default"
-                                                  }`}
-                                                  onClick={() => autenticado && onToggleEtapa(obj.id, meta.id, sub.id, etapa.id)}
+                                                  className="flex items-center justify-between p-1.5 rounded-lg transition-colors hover:bg-secondary/20 group/etapa"
                                                 >
-                                                  <div className="mt-0.5 shrink-0">
-                                                    {etapa.concluida ? (
-                                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                                    ) : (
-                                                      <Circle className="w-3.5 h-3.5 text-muted-foreground/60" />
-                                                    )}
+                                                  <div 
+                                                    className={`flex items-start gap-2 flex-1 min-w-0 ${
+                                                      autenticado ? "cursor-pointer" : "cursor-default"
+                                                    }`}
+                                                    onClick={() => autenticado && onToggleEtapa(obj.id, meta.id, sub.id, etapa.id)}
+                                                  >
+                                                    <div className="mt-0.5 shrink-0">
+                                                      {etapa.concluida ? (
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                                      ) : (
+                                                        <Circle className="w-3.5 h-3.5 text-muted-foreground/60" />
+                                                      )}
+                                                    </div>
+                                                    <span className={`text-[11px] font-medium leading-tight select-none truncate ${
+                                                      etapa.concluida 
+                                                        ? "text-muted-foreground line-through decoration-muted-foreground/40" 
+                                                        : "text-foreground"
+                                                    }`}>
+                                                      {etapa.nome}
+                                                    </span>
                                                   </div>
-                                                  <span className={`text-[11px] font-medium leading-tight select-none ${
-                                                    etapa.concluida 
-                                                      ? "text-muted-foreground line-through decoration-muted-foreground/40" 
-                                                      : "text-foreground"
-                                                  }`}>
-                                                    {etapa.nome}
-                                                  </span>
+
+                                                  {/* Botões de Reordenação de Etapas */}
+                                                  {autenticado && onReordenarEtapa && (
+                                                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/etapa:opacity-100 transition-opacity duration-150 pl-2">
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          onReordenarEtapa(obj.id, meta.id, sub.id, etapa.id, "subir");
+                                                        }}
+                                                        disabled={etapaIdx === 0}
+                                                        className="h-5 w-5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
+                                                        title="Subir"
+                                                      >
+                                                        <ChevronUp className="w-3.5 h-3.5" />
+                                                      </Button>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          onReordenarEtapa(obj.id, meta.id, sub.id, etapa.id, "descer");
+                                                        }}
+                                                        disabled={etapaIdx === sub.etapas.length - 1}
+                                                        className="h-5 w-5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
+                                                        title="Descer"
+                                                      >
+                                                        <ChevronDown className="w-3.5 h-3.5" />
+                                                      </Button>
+                                                    </div>
+                                                  )}
                                                 </div>
                                               ))}
                                             </div>
