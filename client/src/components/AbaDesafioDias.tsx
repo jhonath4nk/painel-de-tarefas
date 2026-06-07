@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { DesafioDiasData, RegraRecorrencia, DiaCorrido, TarefaDia } from "../lib/types";
 import { 
   Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Sparkles, 
-  Settings2, ChevronRight, ChevronLeft, ArrowRight, Check, RefreshCw,
-  HelpCircle, Info
+  Settings2, ChevronRight, ChevronLeft, Check, Info, AlertTriangle
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
@@ -13,7 +12,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "sonner";
 import { Progress } from "./ui/progress";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface AbaDesafioDiasProps {
   desafioData: DesafioDiasData;
@@ -31,7 +29,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
 
   // Estatísticas do Desafio
   const stats = useMemo(() => {
-    const total = desafioData?.totalDias || 100;
+    const total = desafioData?.totalDias || 180;
     let concluidos = 0;
     let totalTarefas = 0;
     let tarefasConcluidas = 0;
@@ -63,18 +61,20 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
   }, [desafioData]);
 
   const diaSelecionado = useMemo(() => {
-    return desafioData.dias[diaSelecionadoNum] || desafioData.dias[String(diaSelecionadoNum) as any] || { numero: diaSelecionadoNum, concluido: false, tarefas: [] };
+    const num = diaSelecionadoNum;
+    return desafioData.dias[num] || desafioData.dias[String(num) as any] || { numero: num, concluido: false, tarefas: [] };
   }, [desafioData, diaSelecionadoNum]);
 
   // Filtrar os dias no grid
   const diasFiltrados = useMemo(() => {
-    const todosDias = Array.from({ length: desafioData.totalDias }, (_, i) => i + 1);
+    const total = desafioData?.totalDias || 180;
+    const todosDias = Array.from({ length: total }, (_, i) => i + 1);
     
     if (filtroDia === "todos") return todosDias;
     
     return todosDias.filter((num) => {
       const dia = desafioData.dias[num] || desafioData.dias[String(num) as any];
-      if (!dia) return false;
+      if (!dia) return filtroDia === "pendentes"; // Se o dia não existe no BD, por padrão está pendente
       return filtroDia === "concluidos" ? dia.concluido : !dia.concluido;
     });
   }, [desafioData, filtroDia]);
@@ -150,12 +150,12 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       dataCriacao: new Date().toISOString()
     };
 
-    const novasRegras = [...desafioData.regras, novaRegra];
+    const novasRegras = [...(desafioData.regras || []), novaRegra];
     const novosDias = { ...desafioData.dias };
+    const total = desafioData?.totalDias || 180;
 
     // Aplicar a nova regra retroativamente apenas nos dias NÃO concluídos
-    for (let d = 1; d <= desafioData.totalDias; d++) {
-      // Lê de forma segura tratando chaves que podem vir como string ou número do JSON
+    for (let d = 1; d <= total; d++) {
       const diaExistente = novosDias[d] || novosDias[String(d) as any];
       const dia = diaExistente ? { ...diaExistente } : { numero: d, concluido: false, tarefas: [] };
       
@@ -187,7 +187,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         novosDias[d] = {
           ...dia,
           tarefas: novasTarefas,
-          concluido: false // Como tem uma nova tarefa não concluída, esse dia que já estava pendente continua pendente
+          concluido: false // Continua pendente pois tem uma nova tarefa pendente
         };
       }
     }
@@ -209,11 +209,12 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       return;
     }
 
-    const novasRegras = desafioData.regras.filter((r) => r.id !== regraId);
+    const novasRegras = (desafioData.regras || []).filter((r) => r.id !== regraId);
     const novosDias = { ...desafioData.dias };
+    const total = desafioData?.totalDias || 180;
 
     // Remover as tarefas associadas a essa regra de todos os dias
-    for (let d = 1; d <= desafioData.totalDias; d++) {
+    for (let d = 1; d <= total; d++) {
       const diaExistente = novosDias[d] || novosDias[String(d) as any];
       if (diaExistente) {
         const dia = { ...diaExistente };
@@ -242,12 +243,13 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       return;
     }
 
-    const novoTotal = desafioData.totalDias + 100;
+    const totalAtual = desafioData?.totalDias || 180;
+    const novoTotal = totalAtual + 100;
     const novosDias = { ...desafioData.dias };
 
-    for (let d = desafioData.totalDias + 1; d <= novoTotal; d++) {
+    for (let d = totalAtual + 1; d <= novoTotal; d++) {
       const tarefas: TarefaDia[] = [];
-      desafioData.regras.forEach((regra) => {
+      (desafioData.regras || []).forEach((regra) => {
         let deveIncluir = false;
         if (regra.tipo === "diaria") {
           deveIncluir = true;
@@ -323,19 +325,19 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
   return (
     <div className="space-y-6">
       {/* Banner de Cabeçalho do Desafio */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-zinc-900 via-neutral-950 to-zinc-900 border border-zinc-800/80 p-6 md:p-8 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-zinc-900 via-neutral-950 to-zinc-900 border border-zinc-800/80 p-5 md:p-8 shadow-2xl">
         <div className="absolute top-0 right-0 -mt-6 -mr-6 w-48 h-48 rounded-full bg-emerald-500/5 blur-3xl" />
         <div className="absolute bottom-0 left-0 -mb-6 -ml-6 w-48 h-48 rounded-full bg-blue-500/5 blur-3xl" />
         
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 relative z-10">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" /> Desafio de Consistência
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
               Painel dos {stats.total} Dias Corridos
             </h1>
-            <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
+            <p className="text-zinc-400 text-xs md:text-sm leading-relaxed">
               Monitore a sua disciplina diária. Cadastre tarefas recorrentes que aparecem de forma automática a cada dia e dê check-in na sua evolução contínua.
             </p>
           </div>
@@ -344,34 +346,34 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
           <div className="flex items-center gap-3">
             <Dialog open={modalRegrasAberto} onOpenChange={setModalRegrasAberto}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-white flex items-center gap-2">
+                <Button variant="outline" className="w-full lg:w-auto border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-white flex items-center justify-center gap-2 text-xs md:text-sm py-5 md:py-4">
                   <Settings2 className="w-4 h-4" /> Configurar Tarefas Diárias
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-lg">
+              <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-[92vw] sm:max-w-lg rounded-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+                  <DialogTitle className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
                     <Clock className="w-5 h-5 text-emerald-500" /> Tarefas Recorrentes
                   </DialogTitle>
-                  <DialogDescription className="text-zinc-400 text-sm">
+                  <DialogDescription className="text-zinc-400 text-xs md:text-sm">
                     Configure as tarefas que serão geradas de forma automatizada para os dias.
                   </DialogDescription>
                 </DialogHeader>
 
                 {/* Lista de regras atuais */}
-                <div className="space-y-3 my-4 max-h-[200px] overflow-y-auto pr-1">
-                  <Label className="text-zinc-300 font-semibold">Tarefas Ativas:</Label>
-                  {desafioData.regras.length === 0 ? (
+                <div className="space-y-3 my-2 max-h-[180px] overflow-y-auto pr-1">
+                  <Label className="text-zinc-300 text-xs md:text-sm font-semibold">Tarefas Ativas:</Label>
+                  {(desafioData?.regras || []).length === 0 ? (
                     <div className="text-center py-4 text-zinc-500 border border-dashed border-zinc-800 rounded-lg text-xs">
                       Nenhuma tarefa recorrente cadastrada ainda.
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {desafioData.regras.map((regra) => (
-                        <div key={regra.id} className="flex items-center justify-between p-3 rounded-lg bg-zinc-900 border border-zinc-800 text-sm">
+                      {(desafioData.regras || []).map((regra) => (
+                        <div key={regra.id} className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs md:text-sm">
                           <div className="space-y-0.5">
-                            <p className="font-semibold text-white">{regra.nome}</p>
-                            <p className="text-xs text-zinc-400">
+                            <p className="font-semibold text-white leading-tight">{regra.nome}</p>
+                            <p className="text-[10px] md:text-xs text-zinc-400">
                               {regra.tipo === "diaria" ? "Todo santo dia" : `A cada ${regra.intervaloDias} dias`}
                             </p>
                           </div>
@@ -379,7 +381,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoverRegra(regra.id, regra.nome)}
-                            className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 h-8 w-8"
+                            className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 h-8 w-8 shrink-0"
                             disabled={!autenticado}
                             title={!autenticado ? "Faça login para remover" : "Remover tarefa"}
                           >
@@ -394,30 +396,30 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                 <hr className="border-zinc-800" />
 
                 {/* Formulário para nova regra */}
-                <form onSubmit={handleAdicionarRegra} className="space-y-4 pt-2">
-                  <Label className="text-zinc-300 font-semibold">Cadastrar Nova Tarefa:</Label>
+                <form onSubmit={handleAdicionarRegra} className="space-y-3.5 pt-1">
+                  <Label className="text-zinc-300 text-xs md:text-sm font-semibold">Cadastrar Nova Tarefa:</Label>
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="nome" className="text-xs text-zinc-400">O que você precisa fazer?</Label>
+                      <Label htmlFor="nome" className="text-[10px] md:text-xs text-zinc-400">O que você precisa fazer?</Label>
                       <Input
                         id="nome"
                         placeholder="Ex: Beber 3L de água, Estudar inglês..."
                         value={novaRegraNome}
                         onChange={(e) => setNovaRegraNome(e.target.value)}
-                        className="bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:border-emerald-500 focus:ring-emerald-500/20"
+                        className="bg-zinc-900 border-zinc-800 text-white placeholder-zinc-600 focus:border-emerald-500 focus:ring-emerald-500/20 text-xs md:text-sm h-10"
                         disabled={!autenticado}
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <Label htmlFor="tipo" className="text-xs text-zinc-400">Frequência</Label>
+                        <Label htmlFor="tipo" className="text-[10px] md:text-xs text-zinc-400">Frequência</Label>
                         <Select
                           value={novaRegraTipo}
                           onValueChange={(v) => setNovaRegraTipo(v as "diaria" | "intervalo")}
                           disabled={!autenticado}
                         >
-                          <SelectTrigger id="tipo" className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                          <SelectTrigger id="tipo" className="bg-zinc-900 border-zinc-800 text-zinc-300 text-xs md:text-sm h-10">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-300">
@@ -429,14 +431,14 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
 
                       {novaRegraTipo === "intervalo" && (
                         <div className="space-y-1.5">
-                          <Label htmlFor="intervalo" className="text-xs text-zinc-400">Dias de intervalo</Label>
+                          <Label htmlFor="intervalo" className="text-[10px] md:text-xs text-zinc-400">Dias de intervalo</Label>
                           <Input
                             id="intervalo"
                             type="number"
                             min="2"
                             value={novaRegraIntervalo}
                             onChange={(e) => setNovaRegraIntervalo(e.target.value)}
-                            className="bg-zinc-900 border-zinc-800 text-white"
+                            className="bg-zinc-900 border-zinc-800 text-white text-xs md:text-sm h-10"
                             disabled={!autenticado}
                           />
                         </div>
@@ -447,7 +449,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                   <DialogFooter className="pt-2">
                     <Button 
                       type="submit" 
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs md:text-sm h-10"
                       disabled={!autenticado}
                     >
                       {autenticado ? "Salvar e Aplicar nos Dias" : "Faça Login para Salvar"}
@@ -460,29 +462,29 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         </div>
 
         {/* Estatísticas de Progresso do Desafio */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-zinc-800/60">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-5 border-t border-zinc-800/60">
           <div className="space-y-1">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Dias Concluídos</span>
+            <span className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-wider font-semibold">Dias Concluídos</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white">{stats.concluidos}</span>
-              <span className="text-sm text-zinc-500">de {stats.total} dias</span>
+              <span className="text-xl md:text-2xl font-bold text-white">{stats.concluidos}</span>
+              <span className="text-xs text-zinc-500">de {stats.total} dias</span>
             </div>
             <Progress value={stats.porcentagemDias} className="h-1.5 bg-zinc-800 [&>div]:bg-emerald-500" />
           </div>
 
           <div className="space-y-1">
-            <span className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">Total de Checks</span>
+            <span className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-wider font-semibold">Total de Checks</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white">{stats.tarefasConcluidas}</span>
-              <span className="text-sm text-zinc-500">de {stats.totalTarefas} tarefas</span>
+              <span className="text-xl md:text-2xl font-bold text-white">{stats.tarefasConcluidas}</span>
+              <span className="text-xs text-zinc-500">de {stats.totalTarefas} tarefas</span>
             </div>
             <Progress value={stats.porcentagemTarefas} className="h-1.5 bg-zinc-800 [&>div]:bg-blue-500" />
           </div>
 
-          <div className="flex items-center justify-end sm:pt-2">
-            <div className="text-right">
-              <span className="text-xs text-zinc-500 block uppercase tracking-wider font-semibold">Consistência Geral</span>
-              <span className="text-3xl font-extrabold text-emerald-400">{stats.porcentagemDias}%</span>
+          <div className="flex items-center justify-start sm:justify-end pt-2 sm:pt-0">
+            <div className="text-left sm:text-right">
+              <span className="text-[10px] md:text-xs text-zinc-500 block uppercase tracking-wider font-semibold">Consistência Geral</span>
+              <span className="text-2xl md:text-3xl font-extrabold text-emerald-400">{stats.porcentagemDias}%</span>
             </div>
           </div>
         </div>
@@ -492,18 +494,18 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Grid de Dias (Esquerda) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-lg font-bold text-white">Selecione o Dia Corrido</h2>
+              <h2 className="text-base md:text-lg font-bold text-white">Selecione o Dia Corrido</h2>
             </div>
             
             {/* Filtros de Dias */}
-            <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg p-1 text-xs">
+            <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded-lg p-0.5 text-[11px] md:text-xs w-full sm:w-auto justify-between sm:justify-start">
               <button
                 onClick={() => setFiltroDia("todos")}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md font-medium transition-colors ${
                   filtroDia === "todos" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -511,7 +513,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
               </button>
               <button
                 onClick={() => setFiltroDia("concluidos")}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md font-medium transition-colors ${
                   filtroDia === "concluidos" ? "bg-emerald-950/40 text-emerald-400 border border-emerald-800/30" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -519,7 +521,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
               </button>
               <button
                 onClick={() => setFiltroDia("pendentes")}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md font-medium transition-colors ${
                   filtroDia === "pendentes" ? "bg-amber-950/40 text-amber-400 border border-amber-800/30" : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -529,24 +531,25 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
           </div>
 
           {/* Grid Scrollable de Dias */}
-          <div className="bg-zinc-950 border border-zinc-800/60 rounded-xl p-4 md:p-6 shadow-xl">
+          <div className="bg-zinc-950 border border-zinc-800/60 rounded-xl p-3 md:p-6 shadow-xl">
             {diasFiltrados.length === 0 ? (
               <div className="text-center py-12 text-zinc-500 text-sm">
                 Nenhum dia encontrado para o filtro selecionado.
               </div>
             ) : (
-              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-[420px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 xl:grid-cols-10 gap-1.5 md:gap-2 max-h-[380px] md:max-h-[460px] overflow-y-auto pr-1">
                 {diasFiltrados.map((num) => {
-                  const dia = desafioData.dias[num] || desafioData.dias[String(num) as any];
+                  const dia = desafioData?.dias[num] || desafioData?.dias[String(num) as any];
                   const isConcluido = dia?.concluido;
-                  const temTarefas = dia && dia.tarefas.length > 0;
+                  const tarefasValidas = dia && Array.isArray(dia.tarefas) ? dia.tarefas : [];
+                  const temTarefas = tarefasValidas.length > 0;
                   const isSelecionado = num === diaSelecionadoNum;
 
                   return (
                     <button
                       key={num}
                       onClick={() => setDiaSelecionadoNum(num)}
-                      className={`relative aspect-square rounded-lg flex flex-col items-center justify-center transition-all border text-xs font-semibold ${
+                      className={`relative aspect-square rounded-lg flex flex-col items-center justify-center transition-all border text-[11px] md:text-xs font-semibold ${
                         isSelecionado
                           ? "bg-emerald-600 text-white border-emerald-400 shadow-lg scale-105 z-10 ring-2 ring-emerald-500/20"
                           : isConcluido
@@ -556,8 +559,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                           : "bg-zinc-950 text-zinc-600 border-zinc-900 cursor-not-allowed"
                       }`}
                     >
-                      <span className="text-[10px] opacity-60 font-medium">DIA</span>
-                      <span className="text-base font-extrabold">{num}</span>
+                      <span className="text-[8px] md:text-[9px] opacity-60 font-medium">DIA</span>
+                      <span className="text-sm md:text-base font-extrabold">{num}</span>
                       
                       {/* Pequeno ponto indicador de conclusão rápida */}
                       {isConcluido && !isSelecionado && (
@@ -570,38 +573,38 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             )}
 
             {/* Opção de construir mais 100 dias no final do grid */}
-            <div className="mt-6 pt-4 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-xs text-zinc-500 flex items-center gap-1.5">
-                <Info className="w-3.5 h-3.5 text-zinc-400" />
-                Dica: Clique com o botão direito no botão do dia para marcá-lo como concluído rapidamente.
+            <div className="mt-4 md:mt-6 pt-4 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-[10px] md:text-xs text-zinc-500 flex items-center gap-1.5 text-center sm:text-left">
+                <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                Clique em um dia para ver ou marcar as tarefas dele no painel lateral.
               </div>
               <Button
                 onClick={handleExpandirMais100}
-                className="bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 hover:text-white font-bold text-xs py-2 px-4 flex items-center gap-2"
+                className="w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 hover:text-white font-bold text-xs py-2 px-4 flex items-center justify-center gap-2"
                 disabled={!autenticado}
                 title={!autenticado ? "Faça login para expandir o desafio" : "Adicionar mais 100 dias"}
               >
-                <Plus className="w-4 h-4" /> Construir mais 100 Dias
+                <Plus className="w-4 h-4" /> Expandir mais 100 Dias
               </Button>
             </div>
           </div>
         </div>
 
         {/* Detalhes do Dia Selecionado (Direita) */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-            <h2 className="text-lg font-bold text-white">Checklist do Dia</h2>
+            <h2 className="text-base md:text-lg font-bold text-white">Checklist do Dia</h2>
           </div>
 
-          <Card className="bg-zinc-950 border-zinc-800/60 shadow-2xl relative overflow-hidden">
+          <Card className="bg-zinc-950 border-zinc-800/60 shadow-2xl relative overflow-hidden rounded-xl">
             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
             
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3 md:pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl font-extrabold text-white">Dia {diaSelecionadoNum}</CardTitle>
-                  <CardDescription className="text-zinc-400 text-xs mt-1">
+                  <CardTitle className="text-xl md:text-2xl font-extrabold text-white">Dia {diaSelecionadoNum}</CardTitle>
+                  <CardDescription className="text-zinc-400 text-[11px] md:text-xs mt-0.5">
                     {diaSelecionado.concluido 
                       ? "Todas as obrigações concluídas!" 
                       : "Checklist pendente para hoje."}
@@ -609,7 +612,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                 </div>
                 
                 {/* Botão de Check Rápido do Dia Inteiro */}
-                {diaSelecionado.tarefas.length > 0 && (
+                {Array.isArray(diaSelecionado.tarefas) && diaSelecionado.tarefas.length > 0 && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -629,18 +632,18 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {diaSelecionado.tarefas.length === 0 ? (
-                <div className="text-center py-8 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-lg">
+              {!Array.isArray(diaSelecionado.tarefas) || diaSelecionado.tarefas.length === 0 ? (
+                <div className="text-center py-8 text-zinc-500 text-xs md:text-sm border border-dashed border-zinc-800 rounded-lg p-4">
                   Nenhuma tarefa recorrente ativa para este dia.
-                  <p className="text-xs text-zinc-600 mt-1">Cadastre tarefas diárias no topo da tela.</p>
+                  <p className="text-[10px] md:text-xs text-zinc-600 mt-1">Cadastre tarefas diárias no botão de configurações acima.</p>
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-2 md:space-y-2.5">
                   {diaSelecionado.tarefas.map((tarefa) => (
                     <button
                       key={tarefa.id}
                       onClick={() => handleToggleTarefa(diaSelecionadoNum, tarefa.id)}
-                      className={`w-full flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all group ${
+                      className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all group ${
                         tarefa.concluida
                           ? "bg-emerald-950/10 border-emerald-800/30 text-zinc-400"
                           : "bg-zinc-900/60 border-zinc-800/80 text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900"
@@ -648,22 +651,22 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                     >
                       <div className="mt-0.5 shrink-0 transition-transform group-active:scale-90">
                         {tarefa.concluida ? (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-500 fill-emerald-500/10" />
+                          <CheckCircle2 className="w-4.5 h-4.5 md:w-5 md:h-5 text-emerald-500 fill-emerald-500/10" />
                         ) : (
-                          <Circle className="w-5 h-5 text-zinc-600 group-hover:text-emerald-500" />
+                          <Circle className="w-4.5 h-4.5 md:w-5 md:h-5 text-zinc-600 group-hover:text-emerald-500" />
                         )}
                       </div>
                       
-                      <div className="space-y-1">
-                        <span className={`text-sm font-semibold block leading-tight ${
-                          tarefa.concluida ? "line-through text-zinc-500" : ""
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <span className={`text-xs md:text-sm font-semibold block leading-tight break-words ${
+                          tarefa.concluida ? "line-through text-zinc-500 font-medium" : ""
                         }`}>
                           {tarefa.nome}
                         </span>
                         
                         {/* Indicador de Tipo de Tarefa */}
-                        {desafioData.regras.find(r => r.id === tarefa.regraId)?.tipo === "intervalo" && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-medium uppercase">
+                        {(desafioData?.regras || []).find(r => r.id === tarefa.regraId)?.tipo === "intervalo" && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-medium uppercase tracking-wider">
                             Recorrente Especial
                           </span>
                         )}
@@ -674,21 +677,21 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
               )}
 
               {/* Detalhes rápidos de navegação */}
-              <div className="flex items-center justify-between pt-4 border-t border-zinc-900 text-xs text-zinc-500">
+              <div className="flex items-center justify-between pt-4 border-t border-zinc-900 text-[10px] md:text-xs text-zinc-500">
                 <button
                   onClick={() => setDiaSelecionadoNum(prev => Math.max(1, prev - 1))}
                   disabled={diaSelecionadoNum === 1}
                   className="flex items-center gap-1 hover:text-zinc-300 disabled:opacity-30"
                 >
-                  <ChevronLeft className="w-4 h-4" /> Dia Anterior
+                  <ChevronLeft className="w-4 h-4" /> Anterior
                 </button>
-                <span>Dia {diaSelecionadoNum} de {desafioData.totalDias}</span>
+                <span className="font-medium">Dia {diaSelecionadoNum} de {stats.total}</span>
                 <button
-                  onClick={() => setDiaSelecionadoNum(prev => Math.min(desafioData.totalDias, prev + 1))}
-                  disabled={diaSelecionadoNum === desafioData.totalDias}
+                  onClick={() => setDiaSelecionadoNum(prev => Math.min(stats.total, prev + 1))}
+                  disabled={diaSelecionadoNum === stats.total}
                   className="flex items-center gap-1 hover:text-zinc-300 disabled:opacity-30"
                 >
-                  Próximo Dia <ChevronRight className="w-4 h-4" />
+                  Próximo <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </CardContent>

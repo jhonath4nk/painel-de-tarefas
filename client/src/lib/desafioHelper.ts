@@ -1,26 +1,26 @@
-import { DesafioDiasData, RegraRecorrencia, DiaCorrido, TarefaDia } from "./types";
+import { DesafioDiasData, DiaCorrido, TarefaDia, RegraRecorrencia } from "./types";
 
 /**
  * Cria a estrutura inicial do desafio de dias corridos.
- * Por padrão, inicia com 100 dias.
+ * Por padrão, inicia com 180 dias conforme nova solicitação.
  */
 export function inicializarDesafio(): DesafioDiasData {
   const regrasIniciais: RegraRecorrencia[] = [
     {
       id: "regra-1",
-      nome: "Leitura de 15 páginas",
+      nome: "Inglês 15 min",
       tipo: "diaria",
       dataCriacao: new Date().toISOString()
     },
     {
       id: "regra-2",
-      nome: "Treino físico de alta intensidade",
+      nome: "Treino / Academia",
       tipo: "diaria",
       dataCriacao: new Date().toISOString()
     },
     {
       id: "regra-3",
-      nome: "Revisão geral das metas de 10 dias",
+      nome: "Revisão de Metas Comerciais",
       tipo: "intervalo",
       intervaloDias: 10,
       dataCriacao: new Date().toISOString()
@@ -28,13 +28,13 @@ export function inicializarDesafio(): DesafioDiasData {
   ];
 
   const data: DesafioDiasData = {
-    totalDias: 100,
+    totalDias: 180,
     regras: regrasIniciais,
     dias: {}
   };
 
-  // Gerar os primeiros 100 dias com base nas regras iniciais
-  for (let d = 1; d <= 100; d++) {
+  // Gerar os primeiros 180 dias com base nas regras iniciais
+  for (let d = 1; d <= 180; d++) {
     data.dias[d] = gerarDiaComRegras(d, regrasIniciais);
   }
 
@@ -53,8 +53,6 @@ export function gerarDiaComRegras(numeroDia: number, regras: RegraRecorrencia[])
     if (regra.tipo === "diaria") {
       deveIncluir = true;
     } else if (regra.tipo === "intervalo" && regra.intervaloDias) {
-      // Ex: a cada 2 dias -> d % 2 === 0
-      // Ex: a cada 10 dias -> d % 10 === 0
       deveIncluir = numeroDia % regra.intervaloDias === 0;
     }
 
@@ -79,11 +77,11 @@ export function gerarDiaComRegras(numeroDia: number, regras: RegraRecorrencia[])
  * Expande o desafio adicionando mais 100 dias ao total de dias atual.
  */
 export function expandirMais100Dias(data: DesafioDiasData): DesafioDiasData {
-  const novoTotal = data.totalDias + 100;
+  const novoTotal = (data.totalDias || 180) + 100;
   const novosDias = { ...data.dias };
 
-  for (let d = data.totalDias + 1; d <= novoTotal; d++) {
-    novosDias[d] = gerarDiaComRegras(d, data.regras);
+  for (let d = (data.totalDias || 180) + 1; d <= novoTotal; d++) {
+    novosDias[d] = gerarDiaComRegras(d, data.regras || []);
   }
 
   return {
@@ -94,27 +92,42 @@ export function expandirMais100Dias(data: DesafioDiasData): DesafioDiasData {
 }
 
 /**
- * Adiciona uma nova regra de recorrência e atualiza retroativamente/futuramente os dias
- * que ainda não foram concluídos ou todos os dias futuros que não tenham tarefas concluídas.
+ * Adiciona uma nova regra de recorrência e atualiza os dias pendentes.
+ * Preserva 100% o histórico dos dias que já foram marcados como concluídos!
  */
 export function adicionarRegraRecorrente(
   data: DesafioDiasData,
   novaRegra: Omit<RegraRecorrencia, "id" | "dataCriacao">
 ): DesafioDiasData {
+  const totalDias = data.totalDias || 180;
   const regraCompleta: RegraRecorrencia = {
     ...novaRegra,
     id: `regra-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     dataCriacao: new Date().toISOString()
   };
 
-  const novasRegras = [...data.regras, regraCompleta];
+  const novasRegras = [...(data.regras || []), regraCompleta];
   const novosDias = { ...data.dias };
 
   // Aplicar a nova regra em todos os dias do desafio
-  for (let d = 1; d <= data.totalDias; d++) {
-    const dia = novosDias[d];
-    let deveIncluir = false;
+  for (let d = 1; d <= totalDias; d++) {
+    // Garante que o dia existe
+    if (!novosDias[d]) {
+      novosDias[d] = {
+        numero: d,
+        concluido: false,
+        tarefas: []
+      };
+    }
 
+    const dia = novosDias[d];
+
+    // REGRA DE PRESERVAÇÃO: Se o dia já foi concluído pelo usuário, não adicionamos obrigações retroativas!
+    if (dia.concluido) {
+      continue;
+    }
+
+    let deveIncluir = false;
     if (regraCompleta.tipo === "diaria") {
       deveIncluir = true;
     } else if (regraCompleta.tipo === "intervalo" && regraCompleta.intervaloDias) {
@@ -122,11 +135,12 @@ export function adicionarRegraRecorrente(
     }
 
     if (deveIncluir) {
-      // Evitar duplicados se por acaso já existir
-      const existe = dia.tarefas.some((t) => t.regraId === regraCompleta.id);
+      const tarefasDia = dia.tarefas || [];
+      const existe = tarefasDia.some((t) => t.regraId === regraCompleta.id);
+      
       if (!existe) {
         const novasTarefas = [
-          ...dia.tarefas,
+          ...tarefasDia,
           {
             id: `t-${regraCompleta.id}-${d}`,
             nome: regraCompleta.nome,
@@ -146,6 +160,7 @@ export function adicionarRegraRecorrente(
 
   return {
     ...data,
+    totalDias,
     regras: novasRegras,
     dias: novosDias
   };
@@ -155,16 +170,17 @@ export function adicionarRegraRecorrente(
  * Remove uma regra de recorrência e remove suas tarefas associadas nos dias onde ela não foi concluída.
  */
 export function removerRegraRecorrente(data: DesafioDiasData, regraId: string): DesafioDiasData {
-  const novasRegras = data.regras.filter((r) => r.id !== regraId);
+  const totalDias = data.totalDias || 180;
+  const novasRegras = (data.regras || []).filter((r) => r.id !== regraId);
   const novosDias = { ...data.dias };
 
-  for (let d = 1; d <= data.totalDias; d++) {
+  for (let d = 1; d <= totalDias; d++) {
     const dia = novosDias[d];
+    if (!dia) continue;
     
-    // Filtra as tarefas removendo as que pertencem à regra excluída, 
-    // exceto se já tiverem sido concluídas (para manter histórico se o usuário desejar, ou remove tudo se preferir)
-    // Aqui vamos remover tudo relacionado à regra para manter limpo.
-    const novasTarefas = dia.tarefas.filter((t) => t.regraId !== regraId);
+    // Remove apenas as tarefas da regra removida
+    const tarefasDia = dia.tarefas || [];
+    const novasTarefas = tarefasDia.filter((t) => t.regraId !== regraId);
     
     novosDias[d] = {
       ...dia,
@@ -175,6 +191,7 @@ export function removerRegraRecorrente(data: DesafioDiasData, regraId: string): 
 
   return {
     ...data,
+    totalDias,
     regras: novasRegras,
     dias: novosDias
   };

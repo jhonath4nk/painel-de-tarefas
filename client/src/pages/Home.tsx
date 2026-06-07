@@ -60,7 +60,37 @@ export default function Home() {
       let desafioInicialParaUsar = inicializarDesafio();
       if (desafioSalvo) {
         try {
-          desafioInicialParaUsar = JSON.parse(desafioSalvo);
+          const parsed = JSON.parse(desafioSalvo);
+          // Upgrade suave de 100 para 180 dias se for uma conta antiga
+          if (parsed && parsed.totalDias === 100) {
+            const novoDesafio = { ...parsed, totalDias: 180 };
+            const regras = parsed.regras || [];
+            for (let d = 101; d <= 180; d++) {
+              if (!novoDesafio.dias[d]) {
+                const tarefas: any[] = [];
+                regras.forEach((regra: any) => {
+                  let deveIncluir = false;
+                  if (regra.tipo === "diaria") {
+                    deveIncluir = true;
+                  } else if (regra.tipo === "intervalo" && regra.intervaloDias) {
+                    deveIncluir = d % regra.intervaloDias === 0;
+                  }
+                  if (deveIncluir) {
+                    tarefas.push({
+                      id: `t-${regra.id}-${d}`,
+                      nome: regra.nome,
+                      concluida: false,
+                      regraId: regra.id
+                    });
+                  }
+                });
+                novoDesafio.dias[d] = { numero: d, concluido: false, tarefas };
+              }
+            }
+            desafioInicialParaUsar = novoDesafio;
+          } else {
+            desafioInicialParaUsar = parsed;
+          }
         } catch {
           desafioInicialParaUsar = inicializarDesafio();
         }
@@ -91,7 +121,37 @@ export default function Home() {
         localStorage.setItem("tidly_objetivos", JSON.stringify(payloadNuvem.objetivos));
 
         // Desafio de Dias carregado (ou inicializa se não houver no banco ainda)
-        const desafioParaUsar = payloadNuvem.desafioDias || desafioLocal;
+        let desafioParaUsar = payloadNuvem.desafioDias || desafioLocal;
+        
+        // Upgrade suave de 100 para 180 dias se for uma conta antiga vinda da nuvem
+        if (desafioParaUsar && desafioParaUsar.totalDias === 100) {
+          const novoDesafio = { ...desafioParaUsar, totalDias: 180 };
+          const regras = desafioParaUsar.regras || [];
+          for (let d = 101; d <= 180; d++) {
+            if (!novoDesafio.dias[d]) {
+              const tarefas: any[] = [];
+              regras.forEach((regra: any) => {
+                let deveIncluir = false;
+                if (regra.tipo === "diaria") {
+                  deveIncluir = true;
+                } else if (regra.tipo === "intervalo" && regra.intervaloDias) {
+                  deveIncluir = d % regra.intervaloDias === 0;
+                }
+                if (deveIncluir) {
+                  tarefas.push({
+                    id: `t-${regra.id}-${d}`,
+                    nome: regra.nome,
+                    concluida: false,
+                    regraId: regra.id
+                  });
+                }
+              });
+              novoDesafio.dias[d] = { numero: d, concluido: false, tarefas };
+            }
+          }
+          desafioParaUsar = novoDesafio;
+        }
+
         setDesafioData(desafioParaUsar);
         localStorage.setItem("tidly_desafio_dias", JSON.stringify(desafioParaUsar));
 
@@ -164,7 +224,7 @@ export default function Home() {
   const salvarDadosDesafio = async (novoDesafio: DesafioDiasData) => {
     // Garantir integridade da estrutura de dados antes de atualizar o estado e salvar
     const desafioSeguro: DesafioDiasData = {
-      totalDias: novoDesafio?.totalDias || 100,
+      totalDias: novoDesafio?.totalDias || 180,
       regras: Array.isArray(novoDesafio?.regras) ? novoDesafio.regras : [],
       dias: novoDesafio?.dias && typeof novoDesafio.dias === "object" ? novoDesafio.dias : {}
     };
@@ -481,7 +541,7 @@ export default function Home() {
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>Desafio 100 Dias</span>
+              <span>Desafio 180 Dias</span>
             </button>
           </div>
 
@@ -558,7 +618,7 @@ export default function Home() {
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
           <span>&copy; 2026 Productivity Board. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v8</span>
+            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v9</span>
             <span>&bull;</span>
             <span>Design Notion-Flat</span>
           </div>
