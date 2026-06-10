@@ -135,10 +135,44 @@ export default function TimelineLinhas({
           return (
           <div 
             key={obj.id} 
-            className="bg-card border border-border/80 rounded-2xl p-5 hover:border-border transition-all duration-200"
+            className="bg-card border border-border/80 rounded-2xl p-5 hover:border-border transition-all duration-200 space-y-4"
           >
+            {/* Barra de Progresso Grande no topo da Área */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs font-bold">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Progresso da Área</span>
+                <span className="font-extrabold" style={{
+                  color: atrasadoObj 
+                    ? "oklch(0.60 0.15 25)" 
+                    : progressoObj === 100 
+                      ? "oklch(0.65 0.14 145)" 
+                      : `oklch(0.70 0.12 ${45 + (progressoObj / 100) * 100})`
+                }}>
+                  {progressoObj}%
+                </span>
+              </div>
+              <div className="w-full bg-secondary/40 rounded-full h-3 overflow-hidden border border-border/20">
+                <div 
+                  className="h-full rounded-full transition-all duration-500 relative"
+                  style={{ 
+                    width: `${progressoObj}%`,
+                    backgroundColor: atrasadoObj 
+                      ? "oklch(0.60 0.15 25)" // Vermelho suave se atrasado
+                      : progressoObj === 100 
+                        ? "oklch(0.65 0.14 145)" // Verde suave se concluído
+                        : `oklch(0.70 ${0.08 + (progressoObj / 100) * 0.05} ${45 + (progressoObj / 100) * 100})` // Amarelo até Verde
+                  }}
+                >
+                  {/* Efeito de brilho sutil para barras com progresso ativo */}
+                  {progressoObj > 0 && progressoObj < 100 && (
+                    <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/15 to-transparent animate-pulse" />
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Linha da Área (antigo Objetivo) */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-1">
               <div className="flex items-start gap-3 min-w-0 flex-1">
                 <button 
                   onClick={() => toggleObjetivo(obj.id)}
@@ -176,54 +210,26 @@ export default function TimelineLinhas({
                 </div>
               </div>
 
-              {/* Informações de Progresso e Seletor de Data da Área */}
+              {/* Informações de Prazo e Ações da Área */}
               <div className="flex items-center gap-6 self-end md:self-auto pl-8 md:pl-0">
-                <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
-                  {/* Seletor de Agenda para Área */}
-                  <div className="relative group/date flex items-center gap-1">
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      Prazo: <span className={atrasadoObj ? "text-destructive font-bold" : "text-foreground"}>{formatarData(obj.prazo)}</span>
-                    </span>
-                    {autenticado && onAlterarPrazo && (
-                      <div className="relative w-4 h-4 overflow-hidden shrink-0 cursor-pointer">
-                        <input 
-                          type="date" 
-                          value={obj.prazo}
-                          onChange={(e) => onAlterarPrazo("area", obj.id, e.target.value)}
-                          className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                          title="Alterar prazo"
-                        />
-                        <Calendar className="w-3.5 h-3.5 text-primary absolute inset-0 z-10 hover:scale-110 transition-transform" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Barra de Progresso Unificada Flat */}
-                  <div className="w-full flex items-center gap-2">
-                    <div className="w-24 bg-secondary rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ 
-                          width: `${progressoObj}%`,
-                          backgroundColor: atrasadoObj 
-                            ? "oklch(0.60 0.15 25)" // Vermelho suave se atrasado
-                            : progressoObj === 100 
-                              ? "oklch(0.65 0.14 145)" // Verde suave se concluído
-                              : `oklch(0.70 ${0.08 + (progressoObj / 100) * 0.05} ${45 + (progressoObj / 100) * 100})` // Amarelo até Verde
-                        }}
+                {/* Seletor de Agenda para Área */}
+                <div className="relative group/date flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Prazo: <span className={atrasadoObj ? "text-destructive font-extrabold" : "text-foreground"}>{formatarData(obj.prazo)}</span>
+                  </span>
+                  {autenticado && onAlterarPrazo && (
+                    <div className="relative w-4 h-4 overflow-hidden shrink-0 cursor-pointer">
+                      <input 
+                        type="date" 
+                        value={obj.prazo}
+                        onChange={(e) => onAlterarPrazo("area", obj.id, e.target.value)}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                        title="Alterar prazo"
                       />
+                      <Calendar className="w-3.5 h-3.5 text-primary absolute inset-0 z-10 hover:scale-110 transition-transform" />
                     </div>
-                    <span className="text-xs font-bold" style={{
-                      color: atrasadoObj 
-                        ? "oklch(0.60 0.15 25)" 
-                        : progressoObj === 100 
-                          ? "oklch(0.65 0.14 145)" 
-                          : `oklch(0.70 0.12 ${45 + (progressoObj / 100) * 100})`
-                    }}>
-                      {progressoObj}%
-                    </span>
-                  </div>
+                  )}
                 </div>
 
                 {autenticado && (
