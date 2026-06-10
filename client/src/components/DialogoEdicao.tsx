@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Circle, Edit2 } from "lucide-react";
 import { Etapa } from "@/lib/types";
 
 interface DialogoEdicaoProps {
@@ -34,6 +34,8 @@ export default function DialogoEdicao({
   // Estado específico para gerenciar as Etapas da Submeta
   const [etapas, setEtapas] = useState<Etapa[]>([]);
   const [novaEtapaNome, setNovaEtapaNome] = useState("");
+  const [etapaSendoEditadaId, setEtapaSendoEditadaId] = useState<string | null>(null);
+  const [etapaEdicaoNome, setEtapaEdicaoNome] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -43,6 +45,8 @@ export default function DialogoEdicao({
       setIcone(dadosIniciais?.icone || "Target");
       setEtapas(dadosIniciais?.etapas || []);
       setNovaEtapaNome("");
+      setEtapaSendoEditadaId(null);
+      setEtapaEdicaoNome("");
     }
   }, [isOpen, dadosIniciais]);
 
@@ -63,6 +67,23 @@ export default function DialogoEdicao({
 
   const handleToggleEtapaInterna = (id: string) => {
     setEtapas(prev => prev.map(e => e.id === id ? { ...e, concluida: !e.concluida } : e));
+  };
+
+  const iniciarEdicaoEtapa = (id: string, nomeAtual: string) => {
+    setEtapaSendoEditadaId(id);
+    setEtapaEdicaoNome(nomeAtual);
+  };
+
+  const salvarEdicaoEtapa = (id: string) => {
+    if (!etapaEdicaoNome.trim()) return;
+    setEtapas(prev => prev.map(e => e.id === id ? { ...e, nome: etapaEdicaoNome.trim() } : e));
+    setEtapaSendoEditadaId(null);
+    setEtapaEdicaoNome("");
+  };
+
+  const cancelarEdicaoEtapa = () => {
+    setEtapaSendoEditadaId(null);
+    setEtapaEdicaoNome("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -220,30 +241,81 @@ export default function DialogoEdicao({
                       key={etapa.id} 
                       className="flex items-center justify-between gap-2 p-2 bg-secondary/20 border border-border/30 rounded-lg group"
                     >
-                      <div 
-                        className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
-                        onClick={() => handleToggleEtapaInterna(etapa.id)}
-                      >
-                        {etapa.concluida ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-                        )}
-                        <span className={`text-xs font-medium truncate ${
-                          etapa.concluida ? "text-muted-foreground line-through" : "text-foreground"
-                        }`}>
-                          {etapa.nome}
-                        </span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoverEtapa(etapa.id)}
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      {etapaSendoEditadaId === etapa.id ? (
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Input
+                            value={etapaEdicaoNome}
+                            onChange={(e) => setEtapaEdicaoNome(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                salvarEdicaoEtapa(etapa.id);
+                              } else if (e.key === "Escape") {
+                                cancelarEdicaoEtapa();
+                              }
+                            }}
+                            className="bg-background border-border rounded-lg text-foreground text-xs h-8 flex-1"
+                            autoFocus
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => salvarEdicaoEtapa(etapa.id)}
+                            className="h-8 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 rounded-lg"
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={cancelarEdicaoEtapa}
+                            className="h-8 text-muted-foreground hover:text-foreground text-xs px-2 rounded-lg"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div 
+                            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+                            onClick={() => handleToggleEtapaInterna(etapa.id)}
+                          >
+                            {etapa.concluida ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                            )}
+                            <span className={`text-xs font-medium truncate ${
+                              etapa.concluida ? "text-muted-foreground line-through" : "text-foreground"
+                            }`}>
+                              {etapa.nome}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => iniciarEdicaoEtapa(etapa.id, etapa.nome)}
+                              className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
+                              title="Editar subetapa"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoverEtapa(etapa.id)}
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
+                              title="Remover subetapa"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))
                 )}

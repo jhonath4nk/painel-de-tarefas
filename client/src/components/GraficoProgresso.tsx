@@ -53,9 +53,9 @@ export default function GraficoProgresso({ objetivos }: GraficoProgressoProps) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-bold text-foreground tracking-tight uppercase">
-            Visão Geral de Performance
+            Visão Geral de Performance por Área
           </h3>
-          <p className="text-xs text-muted-foreground">Progresso consolidado por objetivo estratégico</p>
+          <p className="text-xs text-muted-foreground">Progresso consolidado por Área de Foco</p>
         </div>
         <div className="flex gap-3 text-[10px] font-semibold">
           <div className="flex items-center gap-1">
