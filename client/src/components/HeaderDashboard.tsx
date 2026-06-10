@@ -1,6 +1,6 @@
 import React from "react";
 import { Objetivo } from "@/lib/types";
-import { Layers, Target, CheckCircle2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Circle, AlertTriangle } from "lucide-react";
 
 interface HeaderDashboardProps {
   objetivos: Objetivo[];
@@ -16,14 +16,10 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
     return Math.round((concluidas / etapa.etapas.length) * 100);
   };
 
-  // Calcular estatísticas gerais usando a nova nomenclatura:
+  // Calcular estatísticas focadas em Tarefas (Etapas no código, mostradas como Tarefas na UI)
   // objetivos (types) = Áreas (Mãe)
   // metas (types) = Objetivos
-  // submetas (types) = Etapas
-  // etapas (types) = Subetapas
-  const totalAreas = objetivos.length;
-  
-  const totalObjetivos = objetivos.reduce((acc, obj) => acc + obj.metas.length, 0);
+  // submetas (types) = Etapas (que o usuário visualiza como as tarefas principais da timeline)
   
   const totalEtapas = objetivos.reduce((acc, obj) => {
     return acc + obj.metas.reduce((sum, meta) => sum + meta.submetas.length, 0);
@@ -35,9 +31,7 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
     }, 0);
   }, 0);
 
-  const taxaConclusaoGeral = totalEtapas > 0 
-    ? Math.round((etapasConcluidas / totalEtapas) * 100) 
-    : 0;
+  const etapasFaltando = totalEtapas - etapasConcluidas;
 
   // Verificar prazos atrasados gerais (etapas pendentes que passaram do prazo)
   const hoje = new Date();
@@ -53,84 +47,81 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
     }, 0);
   }, 0);
 
+  // Percentuais correspondentes
+  const pctFeitas = totalEtapas > 0 ? Math.round((etapasConcluidas / totalEtapas) * 100) : 0;
+  const pctFaltando = totalEtapas > 0 ? Math.round((etapasFaltando / totalEtapas) * 100) : 0;
+  const pctAtrasadas = totalEtapas > 0 ? Math.round((totalAtrasadas / totalEtapas) * 100) : 0;
+
   return (
     <div className="space-y-4">
-      {/* Grid de Big Numbers - Estilo Flat Amigável */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Áreas Ativas */}
+      {/* Grid de Big Numbers Focado em Execução de Tarefas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Card 1: Tarefas Feitas */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
-          <div className="p-3 bg-primary/10 rounded-xl text-primary">
-            <Layers className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Áreas Ativas
-            </span>
-            <span className="text-3xl font-bold text-foreground block tracking-tight mt-0.5">
-              {totalAreas}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2: Objetivos em Foco */}
-        <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
-          <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
-            <Target className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Objetivos em Foco
-            </span>
-            <span className="text-3xl font-bold text-foreground block tracking-tight mt-0.5">
-              {totalObjetivos}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3: Progresso Geral das Etapas */}
-        <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
-          <div className={`p-3 rounded-xl ${
-            taxaConclusaoGeral === 100 
-              ? "bg-emerald-500/10 text-emerald-400" 
-              : "bg-primary/10 text-primary"
-          }`}>
-            <CheckCircle2 className="w-5 h-5" />
+          <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Progresso Geral
+              Tarefas Feitas
             </span>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className={`text-3xl font-bold tracking-tight ${
-                taxaConclusaoGeral === 100 ? "text-emerald-400" : "text-foreground"
-              }`}>
-                {taxaConclusaoGeral}%
+            <div className="flex items-baseline justify-between mt-0.5">
+              <span className="text-3xl font-bold text-emerald-400 tracking-tight">
+                {etapasConcluidas}
+                <span className="text-sm font-medium text-muted-foreground ml-1">/ {totalEtapas}</span>
               </span>
-              <span className="text-xs text-muted-foreground">
-                ({etapasConcluidas}/{totalEtapas} Etapas)
+              <span className="text-lg font-extrabold text-emerald-500/80">
+                {pctFeitas}%
               </span>
             </div>
           </div>
         </div>
 
-        {/* Card 4: Etapas Atrasadas */}
+        {/* Card 2: Tarefas Faltando */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
+          <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400">
+            <Circle className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+              Tarefas Faltando
+            </span>
+            <div className="flex items-baseline justify-between mt-0.5">
+              <span className="text-3xl font-bold text-amber-400 tracking-tight">
+                {etapasFaltando}
+                <span className="text-sm font-medium text-muted-foreground ml-1">/ {totalEtapas}</span>
+              </span>
+              <span className="text-lg font-extrabold text-amber-500/80">
+                {pctFaltando}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Tarefas em Atraso */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
           <div className={`p-3 rounded-xl ${
-            totalAtrasadas > 0 
-              ? "bg-destructive/10 text-destructive" 
-              : "bg-emerald-500/10 text-emerald-400"
+            totalAtrasadas > 0 ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-400"
           }`}>
-            <AlertTriangle className="w-5 h-5" />
+            <AlertTriangle className="w-6 h-6" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Etapas Atrasadas
+              Tarefas em Atraso
             </span>
-            <span className={`text-3xl font-bold block tracking-tight mt-0.5 ${
-              totalAtrasadas > 0 ? "text-destructive" : "text-emerald-400"
-            }`}>
-              {totalAtrasadas > 0 ? totalAtrasadas : "0"}
-            </span>
+            <div className="flex items-baseline justify-between mt-0.5">
+              <span className={`text-3xl font-bold tracking-tight ${
+                totalAtrasadas > 0 ? "text-destructive" : "text-emerald-400"
+              }`}>
+                {totalAtrasadas}
+                <span className="text-sm font-medium text-muted-foreground ml-1">/ {totalEtapas}</span>
+              </span>
+              <span className={`text-lg font-extrabold ${
+                totalAtrasadas > 0 ? "text-destructive/80" : "text-emerald-500/80"
+              }`}>
+                {pctAtrasadas}%
+              </span>
+            </div>
           </div>
         </div>
       </div>
