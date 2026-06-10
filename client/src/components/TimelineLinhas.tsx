@@ -17,10 +17,10 @@ import {
   AlertTriangle,
   CheckCircle2,
   Circle,
-  Check
+  Check,
+  ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface TimelineLinhasProps {
   objetivos: Objetivo[];
@@ -32,6 +32,7 @@ interface TimelineLinhasProps {
   onEditarSubmeta: (objetivoId: string, metaId: string, submeta: Submeta) => void;
   onCriarMeta: (objetivoId: string) => void;
   onCriarSubmeta: (objetivoId: string, metaId: string) => void;
+  onAlterarPrazo?: (tipo: "area" | "objetivo" | "etapa", id: string, novoPrazo: string, parentIds?: { objetivoId?: string, metaId?: string }) => void;
   autenticado?: boolean;
 }
 
@@ -46,8 +47,6 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
   Target
 };
 
-import { ChevronUp } from "lucide-react";
-
 export default function TimelineLinhas({
   objetivos,
   onToggleSubmeta,
@@ -58,6 +57,7 @@ export default function TimelineLinhas({
   onEditarSubmeta,
   onCriarMeta,
   onCriarSubmeta,
+  onAlterarPrazo,
   autenticado = false
 }: TimelineLinhasProps) {
   const [objetivosExpandidos, setObjetivosExpandidos] = useState<Record<string, boolean>>({
@@ -137,7 +137,7 @@ export default function TimelineLinhas({
             key={obj.id} 
             className="bg-card border border-border/80 rounded-2xl p-5 hover:border-border transition-all duration-200"
           >
-            {/* Linha do Objetivo */}
+            {/* Linha da Área (antigo Objetivo) */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-border/40">
               <div className="flex items-start gap-3 min-w-0 flex-1">
                 <button 
@@ -176,13 +176,28 @@ export default function TimelineLinhas({
                 </div>
               </div>
 
-              {/* Informações de Progresso e Ações do Objetivo */}
+              {/* Informações de Progresso e Seletor de Data da Área */}
               <div className="flex items-center gap-6 self-end md:self-auto pl-8 md:pl-0">
                 <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    Prazo: <span className={atrasadoObj ? "text-destructive font-bold" : "text-foreground"}>{formatarData(obj.prazo)}</span>
-                  </span>
+                  {/* Seletor de Agenda para Área */}
+                  <div className="relative group/date flex items-center gap-1">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Prazo: <span className={atrasadoObj ? "text-destructive font-bold" : "text-foreground"}>{formatarData(obj.prazo)}</span>
+                    </span>
+                    {autenticado && onAlterarPrazo && (
+                      <div className="relative w-4 h-4 overflow-hidden shrink-0 cursor-pointer">
+                        <input 
+                          type="date" 
+                          value={obj.prazo}
+                          onChange={(e) => onAlterarPrazo("area", obj.id, e.target.value)}
+                          className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                          title="Alterar prazo"
+                        />
+                        <Calendar className="w-3.5 h-3.5 text-primary absolute inset-0 z-10 hover:scale-110 transition-transform" />
+                      </div>
+                    )}
+                  </div>
                   
                   {/* Barra de Progresso Unificada Flat */}
                   <div className="w-full flex items-center gap-2">
@@ -226,7 +241,7 @@ export default function TimelineLinhas({
                       size="icon"
                       onClick={() => onCriarMeta(obj.id)}
                       className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-lg"
-                      title="Adicionar Meta"
+                      title="Adicionar Objetivo"
                     >
                       <Plus className="w-4 h-4" />
                     </Button>
@@ -235,12 +250,12 @@ export default function TimelineLinhas({
               </div>
             </div>
 
-            {/* Lista de Metas (Timeline Interna Flat) */}
+            {/* Lista de Objetivos (antigas Metas) */}
             {expandidoObj && (
               <div className="mt-4 ml-4 pl-6 border-l border-border/80 space-y-6 relative">
                 {obj.metas.length === 0 ? (
                   <p className="text-xs text-muted-foreground py-2">
-                    Nenhuma meta cadastrada para este objetivo. Clique no botão "+" para criar uma.
+                    Nenhum objetivo cadastrado para esta área. Clique no botão "+" para criar um.
                   </p>
                 ) : (
                   [...obj.metas]
@@ -263,7 +278,7 @@ export default function TimelineLinhas({
                           }`} />
                         </div>
 
-                        {/* Linha da Meta */}
+                        {/* Linha do Objetivo (antiga Meta) */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-secondary/30 hover:bg-secondary/50 p-3 border border-border/30 rounded-xl transition-colors duration-150">
                           <div className="flex items-start gap-2 min-w-0 flex-1">
                             <button 
@@ -292,13 +307,28 @@ export default function TimelineLinhas({
                             </div>
                           </div>
 
-                          {/* Prazo e Progresso da Meta */}
+                          {/* Prazo e Progresso do Objetivo */}
                           <div className="flex items-center gap-4 self-end sm:self-auto pl-7 sm:pl-0">
                             <div className="flex flex-col items-end gap-1 min-w-[120px]">
-                              <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {formatarData(meta.prazo)}
-                              </span>
+                              {/* Seletor de Agenda para Objetivo */}
+                              <div className="relative group/date flex items-center gap-1">
+                                <span className="text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  {formatarData(meta.prazo)}
+                                </span>
+                                {autenticado && onAlterarPrazo && (
+                                  <div className="relative w-3.5 h-3.5 overflow-hidden shrink-0 cursor-pointer">
+                                    <input 
+                                      type="date" 
+                                      value={meta.prazo}
+                                      onChange={(e) => onAlterarPrazo("objetivo", meta.id, e.target.value, { objetivoId: obj.id })}
+                                      className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                                      title="Alterar prazo"
+                                    />
+                                    <Calendar className="w-3 h-3 text-primary absolute inset-0 z-10 hover:scale-110 transition-transform" />
+                                  </div>
+                                )}
+                              </div>
                               
                               <div className="w-full flex items-center gap-2">
                                 <div className="w-16 bg-secondary rounded-full h-1.5 overflow-hidden">
@@ -327,7 +357,7 @@ export default function TimelineLinhas({
                             </div>
 
                             {autenticado && (
-                              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                              <div className="flex items-center gap-0.5">
                                 <Button 
                                   variant="ghost" 
                                   size="icon"
@@ -341,7 +371,7 @@ export default function TimelineLinhas({
                                   size="icon"
                                   onClick={() => onCriarSubmeta(obj.id, meta.id)}
                                   className="h-7 w-7 text-primary hover:bg-primary/10 rounded-md"
-                                  title="Adicionar Submeta"
+                                  title="Adicionar Etapa"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                 </Button>
@@ -350,16 +380,16 @@ export default function TimelineLinhas({
                           </div>
                         </div>
 
-                        {/* Stepper Horizontal de Submetas Conectado */}
+                        {/* Stepper Horizontal de Etapas Conectado */}
                         {expandidaMeta && (
                           <div className="mt-4 ml-4 pl-4 relative">
                             {meta.submetas.length === 0 ? (
                               <p className="text-xs text-muted-foreground py-1">
-                                Nenhuma submeta cadastrada. Clique no "+" para criar uma.
+                                Nenhuma etapa cadastrada. Clique no "+" para criar uma.
                               </p>
                             ) : (
                               <div className="relative">
-                                {/* Linha de Progressão Contínua Conectora de Fundo (Fina e Branca) */}
+                                {/* Linha de Progressão Contínua Conectora de Fundo */}
                                 <div className="absolute top-[18px] left-[16px] right-[16px] h-[1px] bg-white/20 z-0 hidden md:block" />
 
                                 <div className="flex flex-col md:flex-row md:items-start gap-6 md:gap-4 overflow-x-auto pb-4 scrollbar-thin relative z-10">
@@ -395,26 +425,42 @@ export default function TimelineLinhas({
                                             )}
                                           </div>
 
-                                          {/* Nome da Submeta e Prazo */}
+                                          {/* Nome da Etapa (antiga Submeta) e Prazo */}
                                           <div className="min-w-0 flex-1">
                                             <p className={`text-xs font-bold truncate ${
                                               subConcluida ? "text-muted-foreground line-through" : "text-foreground"
                                             }`}>
                                               {sub.nome}
                                             </p>
-                                            <span className={`text-[10px] font-semibold flex items-center gap-1 mt-0.5 ${
-                                              subConcluida 
-                                                ? "text-emerald-400" 
-                                                : atrasadaSub 
-                                                  ? "text-destructive font-bold" 
-                                                  : "text-muted-foreground"
-                                            }`}>
-                                              <Calendar className="w-2.5 h-2.5" />
-                                              {formatarData(sub.prazo)}
-                                            </span>
+                                            
+                                            {/* Seletor de Agenda para Etapa */}
+                                            <div className="relative group/date flex items-center gap-1 mt-0.5">
+                                              <span className={`text-[10px] font-semibold flex items-center gap-1 ${
+                                                subConcluida 
+                                                  ? "text-emerald-400" 
+                                                  : atrasadaSub 
+                                                    ? "text-destructive font-bold" 
+                                                    : "text-muted-foreground"
+                                              }`}>
+                                                <Calendar className="w-2.5 h-2.5" />
+                                                {formatarData(sub.prazo)}
+                                              </span>
+                                              {autenticado && onAlterarPrazo && (
+                                                <div className="relative w-3.5 h-3.5 overflow-hidden shrink-0 cursor-pointer">
+                                                  <input 
+                                                    type="date" 
+                                                    value={sub.prazo}
+                                                    onChange={(e) => onAlterarPrazo("etapa", sub.id, e.target.value, { objetivoId: obj.id, metaId: meta.id })}
+                                                    className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                                                    title="Alterar prazo"
+                                                  />
+                                                  <Calendar className="w-2.5 h-2.5 text-primary absolute inset-0 z-10 hover:scale-110 transition-transform" />
+                                                </div>
+                                              )}
+                                            </div>
                                           </div>
 
-                                          {/* Botão de Editar Submeta */}
+                                          {/* Botão de Editar Etapa */}
                                           {autenticado && (
                                             <Button 
                                               variant="ghost" 
@@ -427,24 +473,24 @@ export default function TimelineLinhas({
                                           )}
                                         </div>
 
-                                        {/* Card Flat de Checklist de Etapas */}
+                                        {/* Card Flat de Checklist de Subetapas */}
                                         <div className="bg-secondary/20 border border-border/40 rounded-xl p-3 mt-1">
                                           <div 
                                             onClick={() => toggleSubmetaChecklist(sub.id)}
                                             className="flex items-center justify-between cursor-pointer hover:text-foreground text-muted-foreground transition-colors"
                                           >
                                             <span className="text-[10px] font-bold uppercase tracking-wider">
-                                              Etapas ({sub.etapas?.filter(e => e.concluida).length || 0}/{sub.etapas?.length || 0})
+                                              Subetapas ({sub.etapas?.filter(e => e.concluida).length || 0}/{sub.etapas?.length || 0})
                                             </span>
                                             <span className="text-[10px] font-bold text-primary">
                                               {progressoSub}%
                                             </span>
                                           </div>
 
-                                          {/* Lista de Etapas (Checklist) */}
+                                          {/* Lista de Subetapas (Checklist) */}
                                           {(!sub.etapas || sub.etapas.length === 0) ? (
                                             <p className="text-[11px] text-muted-foreground mt-2 italic">
-                                              Nenhuma etapa cadastrada. Edite a submeta para adicionar etapas.
+                                              Nenhuma subetapa cadastrada. Edite a etapa para adicionar subetapas.
                                             </p>
                                           ) : (
                                             <div className="space-y-2 mt-2">
@@ -475,7 +521,7 @@ export default function TimelineLinhas({
                                                     </span>
                                                   </div>
 
-                                                  {/* Botões de Reordenação de Etapas */}
+                                                  {/* Botões de Reordenação de Subetapas */}
                                                   {autenticado && onReordenarEtapa && (
                                                     <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/etapa:opacity-100 transition-opacity duration-150 pl-2">
                                                       <Button

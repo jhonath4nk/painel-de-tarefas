@@ -307,6 +307,48 @@ export default function Home() {
     salvarDados(novosObjetivos);
   };
 
+  // Alterar prazo inline de uma Área, Objetivo ou Etapa
+  const handleAlterarPrazo = (
+    tipo: "area" | "objetivo" | "etapa",
+    id: string,
+    novoPrazo: string,
+    parentIds?: { objetivoId?: string; metaId?: string }
+  ) => {
+    if (!autenticado) return;
+    
+    const novosObjetivos = objetivos.map(o => {
+      // Se for do tipo Área (representado internamente por objetivo)
+      if (tipo === "area" && o.id === id) {
+        return { ...o, prazo: novoPrazo };
+      }
+
+      // Se não for área, ou se for outro objetivo, precisamos percorrer os níveis internos
+      return {
+        ...o,
+        metas: o.metas.map(m => {
+          // Se for do tipo Objetivo (representado internamente por meta)
+          if (tipo === "objetivo" && m.id === id && parentIds?.objetivoId === o.id) {
+            return { ...m, prazo: novoPrazo };
+          }
+
+          // Se for do tipo Etapa (representado internamente por submeta)
+          return {
+            ...m,
+            submetas: m.submetas.map(s => {
+              if (tipo === "etapa" && s.id === id && parentIds?.objetivoId === o.id && parentIds?.metaId === m.id) {
+                return { ...s, prazo: novoPrazo };
+              }
+              return s;
+            })
+          };
+        })
+      };
+    });
+
+    salvarDados(novosObjetivos);
+    toast.success("Prazo atualizado com sucesso!");
+  };
+
   // Reordenar etapas de uma submeta (subir ou descer de posição)
   const handleReordenarEtapa = (objetivoId: string, metaId: string, submetaId: string, etapaId: string, direcao: "subir" | "descer") => {
     if (!autenticado) return;
@@ -650,6 +692,7 @@ export default function Home() {
                 onEditarSubmeta={abrirEditarSubmeta}
                 onCriarMeta={abrirCriarMeta}
                 onCriarSubmeta={abrirCriarSubmeta}
+                onAlterarPrazo={handleAlterarPrazo}
                 autenticado={autenticado}
               />
             </div>
@@ -666,7 +709,7 @@ export default function Home() {
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
           <span>&copy; 2026 Productivity Board. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v11</span>
+            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v12</span>
             <span>&bull;</span>
             <span>Design Notion-Flat</span>
           </div>

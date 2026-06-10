@@ -1,41 +1,45 @@
 import React from "react";
 import { Objetivo } from "@/lib/types";
-import { Target, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { Layers, Target, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface HeaderDashboardProps {
   objetivos: Objetivo[];
 }
 
 export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
-  // Obter progresso de submeta com base em suas etapas
-  const obterProgressoSubmeta = (submeta: any) => {
-    if (!submeta.etapas || submeta.etapas.length === 0) {
-      return submeta.concluida ? 100 : 0;
+  // Obter progresso de uma etapa (antiga submeta) com base em suas subetapas (antigas etapas)
+  const obterProgressoEtapa = (etapa: any) => {
+    if (!etapa.etapas || etapa.etapas.length === 0) {
+      return etapa.concluida ? 100 : 0;
     }
-    const concluidas = submeta.etapas.filter((e: any) => e.concluida).length;
-    return Math.round((concluidas / submeta.etapas.length) * 100);
+    const concluidas = etapa.etapas.filter((e: any) => e.concluida).length;
+    return Math.round((concluidas / etapa.etapas.length) * 100);
   };
 
-  // Calcular estatísticas gerais
-  const totalObjetivos = objetivos.length;
+  // Calcular estatísticas gerais usando a nova nomenclatura:
+  // objetivos (types) = Áreas (Mãe)
+  // metas (types) = Objetivos
+  // submetas (types) = Etapas
+  // etapas (types) = Subetapas
+  const totalAreas = objetivos.length;
   
-  const totalMetas = objetivos.reduce((acc, obj) => acc + obj.metas.length, 0);
+  const totalObjetivos = objetivos.reduce((acc, obj) => acc + obj.metas.length, 0);
   
-  const totalSubmetas = objetivos.reduce((acc, obj) => {
+  const totalEtapas = objetivos.reduce((acc, obj) => {
     return acc + obj.metas.reduce((sum, meta) => sum + meta.submetas.length, 0);
   }, 0);
 
-  const submetasConcluidas = objetivos.reduce((acc, obj) => {
+  const etapasConcluidas = objetivos.reduce((acc, obj) => {
     return acc + obj.metas.reduce((sum, meta) => {
-      return sum + meta.submetas.filter(sub => obterProgressoSubmeta(sub) === 100).length;
+      return sum + meta.submetas.filter(sub => obterProgressoEtapa(sub) === 100).length;
     }, 0);
   }, 0);
 
-  const taxaConclusaoGeral = totalSubmetas > 0 
-    ? Math.round((submetasConcluidas / totalSubmetas) * 100) 
+  const taxaConclusaoGeral = totalEtapas > 0 
+    ? Math.round((etapasConcluidas / totalEtapas) * 100) 
     : 0;
 
-  // Verificar prazos atrasados gerais
+  // Verificar prazos atrasados gerais (etapas pendentes que passaram do prazo)
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
@@ -43,7 +47,7 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
     return acc + obj.metas.reduce((sum, meta) => {
       return sum + meta.submetas.filter(sub => {
         const prazo = new Date(sub.prazo);
-        const concluida = obterProgressoSubmeta(sub) === 100;
+        const concluida = obterProgressoEtapa(sub) === 100;
         return !concluida && prazo < hoje;
       }).length;
     }, 0);
@@ -53,14 +57,29 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
     <div className="space-y-4">
       {/* Grid de Big Numbers - Estilo Flat Amigável */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Objetivos Ativos */}
+        {/* Card 1: Áreas Ativas */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
           <div className="p-3 bg-primary/10 rounded-xl text-primary">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+              Áreas Ativas
+            </span>
+            <span className="text-3xl font-bold text-foreground block tracking-tight mt-0.5">
+              {totalAreas}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Objetivos em Foco */}
+        <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
+          <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
             <Target className="w-5 h-5" />
           </div>
           <div>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Objetivos Ativos
+              Objetivos em Foco
             </span>
             <span className="text-3xl font-bold text-foreground block tracking-tight mt-0.5">
               {totalObjetivos}
@@ -68,22 +87,7 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
           </div>
         </div>
 
-        {/* Card 2: Metas Estabelecidas */}
-        <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
-          <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Metas Ativas
-            </span>
-            <span className="text-3xl font-bold text-foreground block tracking-tight mt-0.5">
-              {totalMetas}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3: Progresso Geral (Verde se batido/bom) */}
+        {/* Card 3: Progresso Geral das Etapas */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
           <div className={`p-3 rounded-xl ${
             taxaConclusaoGeral === 100 
@@ -103,13 +107,13 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
                 {taxaConclusaoGeral}%
               </span>
               <span className="text-xs text-muted-foreground">
-                ({submetasConcluidas}/{totalSubmetas})
+                ({etapasConcluidas}/{totalEtapas} Etapas)
               </span>
             </div>
           </div>
         </div>
 
-        {/* Card 4: Atrasos (Vermelho se defasado/atrasado) */}
+        {/* Card 4: Etapas Atrasadas */}
         <div className="bg-card border border-border/80 rounded-2xl p-5 flex items-center gap-4 transition-all duration-200">
           <div className={`p-3 rounded-xl ${
             totalAtrasadas > 0 
@@ -120,7 +124,7 @@ export default function HeaderDashboard({ objetivos }: HeaderDashboardProps) {
           </div>
           <div>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-              Atrasadas / Alerta
+              Etapas Atrasadas
             </span>
             <span className={`text-3xl font-bold block tracking-tight mt-0.5 ${
               totalAtrasadas > 0 ? "text-destructive" : "text-emerald-400"
