@@ -491,10 +491,10 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       </div>
 
       {/* Grid Principal: Lateral Esquerda com Dias / Lateral Direita com Detalhes */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
         {/* Grid de Dias (Esquerda) */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="md:col-span-5 lg:col-span-4 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-emerald-500" />
@@ -537,7 +537,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                 Nenhum dia encontrado para o filtro selecionado.
               </div>
             ) : (
-              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-7 xl:grid-cols-10 gap-1.5 md:gap-2 max-h-[380px] md:max-h-[460px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-3 gap-2 max-h-[480px] overflow-y-auto pr-1">
                 {diasFiltrados.map((num) => {
                   const dia = desafioData?.dias[num] || desafioData?.dias[String(num) as any];
                   const isConcluido = dia?.concluido;
@@ -549,9 +549,9 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                     <button
                       key={num}
                       onClick={() => setDiaSelecionadoNum(num)}
-                      className={`relative aspect-square rounded-lg flex flex-col items-center justify-center transition-all border text-[10px] sm:text-xs font-semibold ${
+                      className={`relative rounded-xl flex flex-col items-center justify-center transition-all border text-[10px] sm:text-xs font-semibold h-16 w-full shrink-0 ${
                         isSelecionado
-                          ? "bg-emerald-600 text-white border-emerald-400 shadow-lg scale-105 z-10 ring-2 ring-emerald-500/20"
+                          ? "bg-emerald-600 text-white border-emerald-400 shadow-lg scale-102 z-10 ring-2 ring-emerald-500/20"
                           : isConcluido
                           ? "bg-emerald-950/30 text-emerald-400 border-emerald-800/40 hover:bg-emerald-950/50"
                           : temTarefas
@@ -559,8 +559,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                           : "bg-zinc-950 text-zinc-600 border-zinc-900 cursor-not-allowed"
                       }`}
                     >
-                      <span className="text-[7px] sm:text-[9px] opacity-60 font-medium">DIA</span>
-                      <span className="text-xs sm:text-sm md:text-base font-extrabold">{num}</span>
+                      <span className="text-[8px] sm:text-[9px] opacity-60 font-medium block">DIA</span>
+                      <span className="text-sm sm:text-base font-extrabold block mt-0.5">{num}</span>
                       
                       {/* Pequeno ponto indicador de conclusão rápida */}
                       {isConcluido && !isSelecionado && (
@@ -591,7 +591,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         </div>
 
         {/* Detalhes do Dia Selecionado (Direita) */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="md:col-span-7 lg:col-span-8 space-y-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             <h2 className="text-base md:text-lg font-bold text-white">Checklist do Dia</h2>
