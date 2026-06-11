@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { DesafioDiasData, RegraRecorrencia, DiaCorrido, TarefaDia } from "../lib/types";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Cell, CartesianGrid } from "recharts";
 import { 
   Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Sparkles, 
   Settings2, ChevronRight, ChevronLeft, Check, Info, AlertTriangle
@@ -25,30 +25,53 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
   const [novaRegraNome, setNovaRegraNome] = useState("");
   const [novaRegraTipo, setNovaRegraTipo] = useState<"diaria" | "intervalo">("diaria");
   const [novaRegraIntervalo, setNovaRegraIntervalo] = useState("2");
+  const [novaRegraCategoria, setNovaRegraCategoria] = useState<"Mente" | "Corpo" | "Profissional">("Mente");
   const [modalRegrasAberto, setModalRegrasAberto] = useState(false);
   const [filtroDia, setFiltroDia] = useState<"todos" | "concluidos" | "pendentes">("todos");
 
-  // Dados para o Gráfico de Evolução dos Últimos 15 Dias
+  // Dados para o Gráfico de Evolução das 3 Categorias (Últimos 7 Dias)
   const dadosEvolucao = useMemo(() => {
     const total = desafioData?.totalDias || 180;
-    const dados: Array<{ dia: string; concluidas: number; total: number; porcentagem: number }> = [];
+    const dados: Array<{ name: string; Mente: number; Corpo: number; Profissional: number }> = [];
 
-    // Vamos pegar os últimos 15 dias que têm tarefas cadastradas (ou simplesmente os últimos 15 dias a partir do dia selecionado/atual)
-    // Para dar uma visão bonita de evolução recente, pegamos uma janela de 15 dias ao redor do diaSelecionadoNum
-    const startDay = Math.max(1, Math.min(diaSelecionadoNum - 7, total - 14));
-    const endDay = Math.min(total, startDay + 14);
+    // Pegar uma janela de 7 dias ao redor do diaSelecionadoNum para mostrar no gráfico
+    const startDay = Math.max(1, Math.min(diaSelecionadoNum - 3, total - 6));
+    const endDay = Math.min(total, startDay + 6);
 
     for (let d = startDay; d <= endDay; d++) {
       const dia = desafioData.dias[d] || desafioData.dias[String(d) as any];
       const tarefasValidas = dia && Array.isArray(dia.tarefas) ? dia.tarefas : [];
-      const totalTarefas = tarefasValidas.length;
-      const concluidas = tarefasValidas.filter(t => t.concluida).length;
-      
+
+      let menteConcluidas = 0;
+      let corpoConcluidas = 0;
+      let profissionalConcluidas = 0;
+
+      tarefasValidas.forEach(t => {
+        if (t.concluida) {
+          // Heurística de retrocompatibilidade para tarefas sem categoria
+          let cat = t.categoria;
+          if (!cat) {
+            const nomeL = t.nome.toLowerCase();
+            if (nomeL.includes("inglês") || nomeL.includes("conhecimento") || nomeL.includes("estudar") || nomeL.includes("leitura")) {
+              cat = "Mente";
+            } else if (nomeL.includes("treino") || nomeL.includes("academia") || nomeL.includes("saúde") || nomeL.includes("água") || nomeL.includes("caminhada")) {
+              cat = "Corpo";
+            } else {
+              cat = "Profissional";
+            }
+          }
+
+          if (cat === "Mente") menteConcluidas++;
+          else if (cat === "Corpo") corpoConcluidas++;
+          else if (cat === "Profissional") profissionalConcluidas++;
+        }
+      });
+
       dados.push({
-        dia: `Dia ${d}`,
-        concluidas,
-        total: totalTarefas,
-        porcentagem: totalTarefas > 0 ? Math.round((concluidas / totalTarefas) * 100) : 0
+        name: `Dia ${d}`,
+        Mente: menteConcluidas,
+        Corpo: corpoConcluidas,
+        Profissional: profissionalConcluidas
       });
     }
 
@@ -175,7 +198,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       nome: novaRegraNome.trim(),
       tipo: novaRegraTipo,
       intervaloDias: novaRegraTipo === "intervalo" ? intervaloNum : undefined,
-      dataCriacao: new Date().toISOString()
+      dataCriacao: new Date().toISOString(),
+      categoria: novaRegraCategoria
     };
 
     const novasRegras = [...(desafioData.regras || []), novaRegra];
@@ -208,7 +232,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             id: `t-${novaRegra.id}-${d}`,
             nome: novaRegra.nome,
             concluida: false,
-            regraId: novaRegra.id
+            regraId: novaRegra.id,
+            categoria: novaRegra.categoria
           }
         ];
 
@@ -290,7 +315,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             id: `t-${regra.id}-${d}`,
             nome: regra.nome,
             concluida: false,
-            regraId: regra.id
+            regraId: regra.id,
+            categoria: regra.categoria
           });
         }
       });
@@ -439,6 +465,24 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                       />
                     </div>
 
+                    <div className="space-y-1.5">
+                      <Label htmlFor="categoria" className="text-[10px] md:text-xs text-zinc-400">Categoria (Área de Foco)</Label>
+                      <Select
+                        value={novaRegraCategoria}
+                        onValueChange={(v) => setNovaRegraCategoria(v as "Mente" | "Corpo" | "Profissional")}
+                        disabled={!autenticado}
+                      >
+                        <SelectTrigger id="categoria" className="bg-zinc-900 border-zinc-800 text-zinc-300 text-xs md:text-sm h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-300">
+                          <SelectItem value="Mente">Mente (Inglês, Conhecimento, etc.)</SelectItem>
+                          <SelectItem value="Corpo">Corpo (Treino, Academia, Saúde, etc.)</SelectItem>
+                          <SelectItem value="Profissional">Profissional (Trabalho, Negócios, etc.)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="tipo" className="text-[10px] md:text-xs text-zinc-400">Frequência</Label>
@@ -517,97 +561,142 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
           </div>
         </div>
 
-        {/* Gráfico de Evolução Diária Horizontal */}
+        {/* Gráfico de Evolução das Três Categorias (Mente, Corpo, Profissional) */}
         <div className="mt-6 pt-5 border-t border-zinc-800/60 space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <h4 className="text-xs md:text-sm font-bold text-white uppercase tracking-tight flex items-center gap-1.5">
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Gráfico de Consistência (Evolução Diária)
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                Evolução Semanal por Categoria
               </h4>
-              <p className="text-[10px] md:text-xs text-zinc-400">Quantidade de tarefas concluídas nos últimos 15 dias ativos</p>
+              <p className="text-[10px] md:text-xs text-zinc-400">Tarefas concluídas nos últimos 7 dias ao redor do dia selecionado</p>
             </div>
-            <div className="hidden sm:flex gap-3 text-[9px] md:text-[10px] font-semibold text-zinc-400">
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Completo (100%)</span>
+            
+            {/* Legenda Premium do Gráfico */}
+            <div className="flex flex-wrap gap-3 text-[9px] md:text-[10px] font-semibold">
+              <div className="flex items-center gap-1.5 bg-zinc-900/40 px-2 py-0.5 rounded-full border border-zinc-800/40">
+                <span className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.4)]" />
+                <span className="text-zinc-300">Mente</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                <span>Parcial (&gt;0%)</span>
+              <div className="flex items-center gap-1.5 bg-zinc-900/40 px-2 py-0.5 rounded-full border border-zinc-800/40">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" />
+                <span className="text-zinc-300">Corpo</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-zinc-800" />
-                <span>Nenhuma (0%)</span>
+              <div className="flex items-center gap-1.5 bg-zinc-900/40 px-2 py-0.5 rounded-full border border-zinc-800/40">
+                <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.4)]" />
+                <span className="text-zinc-300">Profissional</span>
               </div>
             </div>
           </div>
 
-          <div className="h-44 w-full bg-zinc-950/40 border border-zinc-800/40 rounded-xl p-3 md:p-4">
+          <div className="h-48 w-full bg-zinc-950/40 border border-zinc-800/40 rounded-xl p-3 md:p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
+              <AreaChart
                 data={dadosEvolucao}
-                layout="vertical"
-                margin={{ top: 0, right: 10, left: -20, bottom: 0 }}
+                margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
               >
+                <defs>
+                  {/* Gradiente Mente (Ciano) */}
+                  <linearGradient id="colorMenteDesafio" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.35}/>
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0}/>
+                  </linearGradient>
+                  {/* Gradiente Corpo (Verde) */}
+                  <linearGradient id="colorCorpoDesafio" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.35}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                  </linearGradient>
+                  {/* Gradiente Profissional (Rosa/Vermelho) */}
+                  <linearGradient id="colorProfissionalDesafio" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.35}/>
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid 
+                  vertical={false} 
+                  stroke="#27272a" 
+                  strokeOpacity={0.3}
+                />
+
                 <XAxis 
-                  type="number" 
-                  domain={[0, 'dataMax']} 
-                  allowDecimals={false}
+                  dataKey="name" 
                   stroke="#52525b" 
-                  fontSize={9}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
+                  dy={5}
                 />
                 <YAxis 
-                  dataKey="dia" 
-                  type="category" 
-                  stroke="#94a3b8" 
-                  fontSize={9}
+                  stroke="#52525b" 
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
-                  width={60}
+                  allowDecimals={false}
+                  dx={-5}
                 />
+                
                 <Tooltip 
-                  cursor={{ fill: "rgba(255, 255, 255, 0.02)" }}
+                  cursor={{ stroke: "rgba(255, 255, 255, 0.05)", strokeWidth: 1 }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
-                      const data = payload[0].payload;
                       return (
-                        <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg shadow-2xl backdrop-blur-md text-xs">
-                          <p className="font-bold text-white">{data.dia}</p>
-                          <p className="text-zinc-400 mt-1">
-                            Concluídas: <span className="font-extrabold text-emerald-400">{data.concluidas}</span> de <span className="font-semibold text-zinc-300">{data.total}</span>
-                          </p>
-                          <p className="text-[10px] text-zinc-500 mt-0.5">
-                            Aproveitamento: <span className="font-bold text-blue-400">{data.porcentagem}%</span>
-                          </p>
+                        <div className="bg-zinc-950/95 border border-zinc-800 p-2.5 rounded-lg shadow-2xl backdrop-blur-md text-xs space-y-1.5">
+                          <p className="font-bold text-white text-center border-b border-zinc-900 pb-1">{payload[0].payload.name}</p>
+                          <div className="space-y-1">
+                            {payload.map((p: any) => (
+                              <div key={p.name} className="flex items-center justify-between gap-5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: p.color }} />
+                                  <span className="text-zinc-400">{p.name}:</span>
+                                </div>
+                                <span className="font-bold text-white">{p.value} {p.value === 1 ? "feita" : "feitas"}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       );
                     }
                     return null;
                   }}
                 />
-                <Bar 
-                  dataKey="concluidas" 
-                  radius={[0, 4, 4, 0]} 
-                  barSize={8}
-                >
-                  {dadosEvolucao.map((entry, index) => {
-                    // Definir cores de acordo com a consistência do dia
-                    let cor = "#27272a"; // 0 tarefas concluídas (cinza)
-                    if (entry.concluidas > 0) {
-                      cor = entry.concluidas === entry.total ? "#10b981" : "#3b82f6"; // verde para 100%, azul para parcial
-                    }
-                    return (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={cor} 
-                      />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
+
+                {/* Área 1: Mente */}
+                <Area
+                  type="monotone"
+                  dataKey="Mente"
+                  stroke="#06b6d4"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorMenteDesafio)"
+                  dot={{ stroke: '#fff', strokeWidth: 1, r: 3, fill: "#06b6d4" }}
+                  activeDot={{ stroke: '#fff', strokeWidth: 1.5, r: 4.5, fill: "#06b6d4" }}
+                />
+
+                {/* Área 2: Corpo */}
+                <Area
+                  type="monotone"
+                  dataKey="Corpo"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorCorpoDesafio)"
+                  dot={{ stroke: '#fff', strokeWidth: 1, r: 3, fill: "#10b981" }}
+                  activeDot={{ stroke: '#fff', strokeWidth: 1.5, r: 4.5, fill: "#10b981" }}
+                />
+
+                {/* Área 3: Profissional */}
+                <Area
+                  type="monotone"
+                  dataKey="Profissional"
+                  stroke="#f43f5e"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorProfissionalDesafio)"
+                  dot={{ stroke: '#fff', strokeWidth: 1, r: 3, fill: "#f43f5e" }}
+                  activeDot={{ stroke: '#fff', strokeWidth: 1.5, r: 4.5, fill: "#f43f5e" }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>

@@ -260,6 +260,7 @@ export interface RegraRecorrencia {
   tipo: "diaria" | "intervalo";
   intervaloDias?: number; // Ex: a cada 2 dias, a cada 10 dias
   dataCriacao: string; // ISO string ou timestamp
+  categoria?: "Mente" | "Corpo" | "Profissional"; // Categoria da tarefa diária
 }
 
 export interface TarefaDia {
@@ -267,6 +268,7 @@ export interface TarefaDia {
   nome: string;
   concluida: boolean;
   regraId?: string; // Vinculado a uma regra de recorrência, se houver
+  categoria?: "Mente" | "Corpo" | "Profissional"; // Categoria copiada da regra
 }
 
 export interface DiaCorrido {

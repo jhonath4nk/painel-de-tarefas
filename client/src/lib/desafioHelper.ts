@@ -10,20 +10,23 @@ export function inicializarDesafio(): DesafioDiasData {
       id: "regra-1",
       nome: "Inglês 15 min",
       tipo: "diaria",
-      dataCriacao: new Date().toISOString()
+      dataCriacao: new Date().toISOString(),
+      categoria: "Mente"
     },
     {
       id: "regra-2",
       nome: "Treino / Academia",
       tipo: "diaria",
-      dataCriacao: new Date().toISOString()
+      dataCriacao: new Date().toISOString(),
+      categoria: "Corpo"
     },
     {
       id: "regra-3",
       nome: "Revisão de Metas Comerciais",
       tipo: "intervalo",
       intervaloDias: 10,
-      dataCriacao: new Date().toISOString()
+      dataCriacao: new Date().toISOString(),
+      categoria: "Profissional"
     }
   ];
 
@@ -61,7 +64,8 @@ export function gerarDiaComRegras(numeroDia: number, regras: RegraRecorrencia[])
         id: `t-${regra.id}-${numeroDia}`,
         nome: regra.nome,
         concluida: false,
-        regraId: regra.id
+        regraId: regra.id,
+        categoria: regra.categoria
       });
     }
   });
@@ -145,7 +149,8 @@ export function adicionarRegraRecorrente(
             id: `t-${regraCompleta.id}-${d}`,
             nome: regraCompleta.nome,
             concluida: false,
-            regraId: regraCompleta.id
+            regraId: regraCompleta.id,
+            categoria: regraCompleta.categoria
           }
         ];
         
