@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { DesafioDiasData, RegraRecorrencia, DiaCorrido, TarefaDia } from "../lib/types";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 import { 
   Plus, Trash2, Calendar, CheckCircle2, Circle, Clock, Sparkles, 
   Settings2, ChevronRight, ChevronLeft, Check, Info, AlertTriangle
@@ -26,6 +27,33 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
   const [novaRegraIntervalo, setNovaRegraIntervalo] = useState("2");
   const [modalRegrasAberto, setModalRegrasAberto] = useState(false);
   const [filtroDia, setFiltroDia] = useState<"todos" | "concluidos" | "pendentes">("todos");
+
+  // Dados para o Gráfico de Evolução dos Últimos 15 Dias
+  const dadosEvolucao = useMemo(() => {
+    const total = desafioData?.totalDias || 180;
+    const dados: Array<{ dia: string; concluidas: number; total: number; porcentagem: number }> = [];
+
+    // Vamos pegar os últimos 15 dias que têm tarefas cadastradas (ou simplesmente os últimos 15 dias a partir do dia selecionado/atual)
+    // Para dar uma visão bonita de evolução recente, pegamos uma janela de 15 dias ao redor do diaSelecionadoNum
+    const startDay = Math.max(1, Math.min(diaSelecionadoNum - 7, total - 14));
+    const endDay = Math.min(total, startDay + 14);
+
+    for (let d = startDay; d <= endDay; d++) {
+      const dia = desafioData.dias[d] || desafioData.dias[String(d) as any];
+      const tarefasValidas = dia && Array.isArray(dia.tarefas) ? dia.tarefas : [];
+      const totalTarefas = tarefasValidas.length;
+      const concluidas = tarefasValidas.filter(t => t.concluida).length;
+      
+      dados.push({
+        dia: `Dia ${d}`,
+        concluidas,
+        total: totalTarefas,
+        porcentagem: totalTarefas > 0 ? Math.round((concluidas / totalTarefas) * 100) : 0
+      });
+    }
+
+    return dados;
+  }, [desafioData, diaSelecionadoNum]);
 
   // Estatísticas do Desafio
   const stats = useMemo(() => {
@@ -486,6 +514,101 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
               <span className="text-[10px] md:text-xs text-zinc-500 block uppercase tracking-wider font-semibold">Consistência Geral</span>
               <span className="text-2xl md:text-3xl font-extrabold text-emerald-400">{stats.porcentagemDias}%</span>
             </div>
+          </div>
+        </div>
+
+        {/* Gráfico de Evolução Diária Horizontal */}
+        <div className="mt-6 pt-5 border-t border-zinc-800/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h4 className="text-xs md:text-sm font-bold text-white uppercase tracking-tight flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Gráfico de Consistência (Evolução Diária)
+              </h4>
+              <p className="text-[10px] md:text-xs text-zinc-400">Quantidade de tarefas concluídas nos últimos 15 dias ativos</p>
+            </div>
+            <div className="hidden sm:flex gap-3 text-[9px] md:text-[10px] font-semibold text-zinc-400">
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>Completo (100%)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span>Parcial (&gt;0%)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-zinc-800" />
+                <span>Nenhuma (0%)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-44 w-full bg-zinc-950/40 border border-zinc-800/40 rounded-xl p-3 md:p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={dadosEvolucao}
+                layout="vertical"
+                margin={{ top: 0, right: 10, left: -20, bottom: 0 }}
+              >
+                <XAxis 
+                  type="number" 
+                  domain={[0, 'dataMax']} 
+                  allowDecimals={false}
+                  stroke="#52525b" 
+                  fontSize={9}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis 
+                  dataKey="dia" 
+                  type="category" 
+                  stroke="#94a3b8" 
+                  fontSize={9}
+                  tickLine={false}
+                  axisLine={false}
+                  width={60}
+                />
+                <Tooltip 
+                  cursor={{ fill: "rgba(255, 255, 255, 0.02)" }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg shadow-2xl backdrop-blur-md text-xs">
+                          <p className="font-bold text-white">{data.dia}</p>
+                          <p className="text-zinc-400 mt-1">
+                            Concluídas: <span className="font-extrabold text-emerald-400">{data.concluidas}</span> de <span className="font-semibold text-zinc-300">{data.total}</span>
+                          </p>
+                          <p className="text-[10px] text-zinc-500 mt-0.5">
+                            Aproveitamento: <span className="font-bold text-blue-400">{data.porcentagem}%</span>
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar 
+                  dataKey="concluidas" 
+                  radius={[0, 4, 4, 0]} 
+                  barSize={8}
+                >
+                  {dadosEvolucao.map((entry, index) => {
+                    // Definir cores de acordo com a consistência do dia
+                    let cor = "#27272a"; // 0 tarefas concluídas (cinza)
+                    if (entry.concluidas > 0) {
+                      cor = entry.concluidas === entry.total ? "#10b981" : "#3b82f6"; // verde para 100%, azul para parcial
+                    }
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={cor} 
+                      />
+                    );
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
