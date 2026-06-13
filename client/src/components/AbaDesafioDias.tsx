@@ -203,7 +203,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         return t;
       });
 
-      const diaConcluido = novasTarefas.length > 0 ? novasTarefas.every((t) => t.concluida) : false;
+      // O dia é considerado concluído (verde no grid) se tiver PELO MENOS 1 tarefa concluída!
+      const diaConcluido = novasTarefas.length > 0 ? novasTarefas.some((t) => t.concluida) : false;
 
       novosDias[diaNum] = {
         ...dia,
@@ -294,7 +295,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         novosDias[d] = {
           ...dia,
           tarefas: novasTarefas,
-          concluido: false // Continua pendente pois tem uma nova tarefa pendente
+          // O dia é considerado concluído se tiver pelo menos 1 tarefa concluída
+          concluido: novasTarefas.length > 0 ? novasTarefas.some((t) => t.concluida) : false
         };
       }
     }
@@ -329,7 +331,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         novosDias[d] = {
           ...dia,
           tarefas: novasTarefas,
-          concluido: novasTarefas.length > 0 ? novasTarefas.every((t) => t.concluida) : false
+          // O dia é considerado concluído se tiver pelo menos 1 tarefa concluída
+          concluido: novasTarefas.length > 0 ? novasTarefas.some((t) => t.concluida) : dia.concluido
         };
       }
     }

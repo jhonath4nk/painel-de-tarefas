@@ -157,7 +157,8 @@ export function adicionarRegraRecorrente(
         novosDias[d] = {
           ...dia,
           tarefas: novasTarefas,
-          concluido: novasTarefas.length > 0 ? novasTarefas.every((t) => t.concluida) : dia.concluido
+          // O dia é considerado concluído se tiver pelo menos 1 tarefa concluída
+          concluido: novasTarefas.length > 0 ? novasTarefas.some((t) => t.concluida) : dia.concluido
         };
       }
     }
@@ -190,7 +191,8 @@ export function removerRegraRecorrente(data: DesafioDiasData, regraId: string): 
     novosDias[d] = {
       ...dia,
       tarefas: novasTarefas,
-      concluido: novasTarefas.length > 0 ? novasTarefas.every((t) => t.concluida) : false
+      // O dia é considerado concluído se tiver pelo menos 1 tarefa concluída
+      concluido: novasTarefas.length > 0 ? novasTarefas.some((t) => t.concluida) : false
     };
   }
 
