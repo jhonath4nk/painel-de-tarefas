@@ -86,42 +86,72 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
     let tarefasConcluidas = 0;
 
     // Para calcular a Consistência Média (Média de Execução):
-    // Somamos as porcentagens de conclusão de cada dia individualmente e dividimos pelo total de dias que têm tarefas.
-    let somaPorcentagensDiarias = 0;
-    let diasComTarefasCount = 0;
-
+    // 1. Primeiro identificamos o "último dia ativo/executado" pelo usuário.
+    // Consideramos o maior número de dia que tem pelo menos uma tarefa concluída, ou o diaSelecionadoNum.
+    let ultimoDiaExecutado = 1;
     const diasValidos = desafioData?.dias ? Object.values(desafioData.dias) : [];
 
     diasValidos.forEach((dia) => {
       if (!dia) return;
       if (dia.concluido) concluidos++;
-      const tarefasValidas = Array.isArray(dia.tarefas) ? dia.tarefas : [];
       
+      const tarefasValidas = Array.isArray(dia.tarefas) ? dia.tarefas : [];
+      const temTarefaConcluida = tarefasValidas.some(t => t && t.concluida);
+      
+      if (temTarefaConcluida && dia.numero > ultimoDiaExecutado) {
+        ultimoDiaExecutado = dia.numero;
+      }
+
+      tarefasValidas.forEach((t) => {
+        if (!t) return;
+        totalTarefas++;
+        if (t.concluida) tarefasConcluidas++;
+      });
+    });
+
+    // Garantir que consideramos pelo menos o dia selecionado atual se ele for maior que o último dia com tarefas concluídas
+    if (diaSelecionadoNum > ultimoDiaExecutado) {
+      // Mas só expandimos o limite se o dia selecionado possuir alguma tarefa concluída ou se for o dia atual que o usuário está editando
+      const diaSel = desafioData.dias[diaSelecionadoNum] || desafioData.dias[String(diaSelecionadoNum) as any];
+      const temTarefaConcluidaNoSel = diaSel && Array.isArray(diaSel.tarefas) && diaSel.tarefas.some(t => t.concluida);
+      if (temTarefaConcluidaNoSel) {
+        ultimoDiaExecutado = diaSelecionadoNum;
+      }
+    }
+
+    // 2. Agora calculamos a média de execução diária APENAS do Dia 1 até o ultimoDiaExecutado.
+    let somaPorcentagensDiarias = 0;
+    let diasConsideradosCount = 0;
+
+    for (let d = 1; d <= ultimoDiaExecutado; d++) {
+      const dia = desafioData.dias[d] || desafioData.dias[String(d) as any];
+      if (!dia) continue;
+
+      const tarefasValidas = Array.isArray(dia.tarefas) ? dia.tarefas : [];
       let tarefasDoDiaTotal = 0;
       let tarefasDoDiaConcluidas = 0;
 
       tarefasValidas.forEach((t) => {
         if (!t) return;
-        totalTarefas++;
         tarefasDoDiaTotal++;
         if (t.concluida) {
-          tarefasConcluidas++;
           tarefasDoDiaConcluidas++;
         }
       });
 
+      // Se o dia tem tarefas configuradas, calculamos o aproveitamento dele (ex: 2 de 3 = 66%)
       if (tarefasDoDiaTotal > 0) {
         somaPorcentagensDiarias += (tarefasDoDiaConcluidas / tarefasDoDiaTotal) * 100;
-        diasComTarefasCount++;
+        diasConsideradosCount++;
       }
-    });
+    }
 
     const porcentagemDias = total > 0 ? Math.round((concluidos / total) * 100) : 0;
     const porcentagemTarefas = totalTarefas > 0 ? Math.round((tarefasConcluidas / totalTarefas) * 100) : 0;
     
-    // Consistência Média: média das porcentagens de execução diária
-    const consistenciaMedia = diasComTarefasCount > 0 
-      ? Math.round(somaPorcentagensDiarias / diasComTarefasCount) 
+    // Consistência Média: média aritmética das porcentagens de execução diária até o último dia ativo
+    const consistenciaMedia = diasConsideradosCount > 0 
+      ? Math.round(somaPorcentagensDiarias / diasConsideradosCount) 
       : 0;
 
     return {
@@ -884,40 +914,86 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                 </div>
               ) : (
                 <div className="space-y-2 md:space-y-2.5">
-                  {diaSelecionado.tarefas.map((tarefa) => (
-                    <button
-                      key={tarefa.id}
-                      onClick={() => handleToggleTarefa(diaSelecionadoNum, tarefa.id)}
-                      className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all group ${
-                        tarefa.concluida
-                          ? "bg-emerald-950/10 border-emerald-800/30 text-zinc-400"
-                          : "bg-zinc-900/60 border-zinc-800/80 text-zinc-200 hover:border-zinc-700 hover:bg-zinc-900"
-                      }`}
-                    >
-                      <div className="mt-0.5 shrink-0 transition-transform group-active:scale-90">
-                        {tarefa.concluida ? (
-                          <CheckCircle2 className="w-4.5 h-4.5 md:w-5 md:h-5 text-emerald-500 fill-emerald-500/10" />
-                        ) : (
-                          <Circle className="w-4.5 h-4.5 md:w-5 md:h-5 text-zinc-600 group-hover:text-emerald-500" />
-                        )}
-                      </div>
-                      
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <span className={`text-xs md:text-sm font-semibold block leading-tight break-words ${
-                          tarefa.concluida ? "line-through text-zinc-500 font-medium" : ""
-                        }`}>
-                          {tarefa.nome}
-                        </span>
+                  {diaSelecionado.tarefas.map((tarefa) => {
+                    // Descobrir a categoria da tarefa (com heurística de retrocompatibilidade se não tiver salva)
+                    let cat = tarefa.categoria;
+                    if (!cat) {
+                      const nomeL = tarefa.nome.toLowerCase();
+                      if (nomeL.includes("inglês") || nomeL.includes("conhecimento") || nomeL.includes("estudar") || nomeL.includes("leitura")) {
+                        cat = "Mente";
+                      } else if (nomeL.includes("treino") || nomeL.includes("academia") || nomeL.includes("saúde") || nomeL.includes("água") || nomeL.includes("caminhada")) {
+                        cat = "Corpo";
+                      } else {
+                        cat = "Profissional";
+                      }
+                    }
+
+                    // Definir classes de cores neon baseadas na categoria
+                    let corBorda = "border-zinc-800/80 hover:border-zinc-700";
+                    let corTextoCategoria = "text-zinc-400";
+                    let bgEtiqueta = "bg-zinc-900/50 border-zinc-800/60";
+                    let corPonto = "bg-zinc-500";
+
+                    if (cat === "Mente") {
+                      corBorda = tarefa.concluida ? "border-cyan-950/40" : "border-cyan-950/60 hover:border-cyan-500/40";
+                      corTextoCategoria = "text-cyan-400";
+                      bgEtiqueta = "bg-cyan-950/20 border-cyan-800/20";
+                      corPonto = "bg-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.4)]";
+                    } else if (cat === "Corpo") {
+                      corBorda = tarefa.concluida ? "border-emerald-950/40" : "border-emerald-950/60 hover:border-emerald-500/40";
+                      corTextoCategoria = "text-emerald-400";
+                      bgEtiqueta = "bg-emerald-950/20 border-emerald-800/20";
+                      corPonto = "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]";
+                    } else if (cat === "Profissional") {
+                      corBorda = tarefa.concluida ? "border-rose-950/40" : "border-rose-950/60 hover:border-rose-500/40";
+                      corTextoCategoria = "text-rose-400";
+                      bgEtiqueta = "bg-rose-950/20 border-rose-800/20";
+                      corPonto = "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.4)]";
+                    }
+
+                    return (
+                      <button
+                        key={tarefa.id}
+                        onClick={() => handleToggleTarefa(diaSelecionadoNum, tarefa.id)}
+                        className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all group ${
+                          tarefa.concluida
+                            ? "bg-zinc-950/40 text-zinc-500"
+                            : "bg-zinc-900/40 text-zinc-200 hover:bg-zinc-900"
+                        } ${corBorda}`}
+                      >
+                        <div className="mt-0.5 shrink-0 transition-transform group-active:scale-90">
+                          {tarefa.concluida ? (
+                            <CheckCircle2 className="w-4.5 h-4.5 md:w-5 md:h-5 text-emerald-500 fill-emerald-500/10" />
+                          ) : (
+                            <Circle className="w-4.5 h-4.5 md:w-5 md:h-5 text-zinc-600 group-hover:text-emerald-500" />
+                          )}
+                        </div>
                         
-                        {/* Indicador de Tipo de Tarefa */}
-                        {(desafioData?.regras || []).find(r => r.id === tarefa.regraId)?.tipo === "intervalo" && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-medium uppercase tracking-wider">
-                            Recorrente Especial
+                        <div className="space-y-1.5 min-w-0 flex-1">
+                          <span className={`text-xs md:text-sm font-semibold block leading-tight break-words ${
+                            tarefa.concluida ? "line-through text-zinc-500 font-medium" : ""
+                          }`}>
+                            {tarefa.nome}
                           </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+                          
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Etiqueta de Categoria de Área de Foco */}
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-semibold uppercase tracking-wider ${bgEtiqueta} ${corTextoCategoria}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${corPonto}`} />
+                              {cat}
+                            </span>
+
+                            {/* Indicador de Tipo de Recorrência Especial */}
+                            {(desafioData?.regras || []).find(r => r.id === tarefa.regraId)?.tipo === "intervalo" && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[9px] font-semibold uppercase tracking-wider">
+                                Recorrente Especial
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
