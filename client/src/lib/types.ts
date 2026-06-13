@@ -2,6 +2,8 @@ export interface Etapa {
   id: string;
   nome: string;
   concluida: boolean;
+  sincronizarDesafio?: boolean; // Se verdadeiro, cria uma tarefa diária recorrente no Desafio de 180 Dias
+  categoriaDesafio?: "Mente" | "Corpo" | "Profissional"; // Categoria da tarefa no desafio
 }
 
 export interface Submeta {

@@ -6,7 +6,7 @@ import ProximasTarefas from "@/components/ProximasTarefas";
 import DialogoEdicao from "@/components/DialogoEdicao";
 import DialogoLoginUsuario from "@/components/DialogoLoginUsuario";
 import { AbaDesafioDias } from "@/components/AbaDesafioDias";
-import { inicializarDesafio } from "@/lib/desafioHelper";
+import { inicializarDesafio, sincronizarEtapasComDesafio } from "@/lib/desafioHelper";
 import GraficoEvolucaoAreas from "@/components/GraficoEvolucaoAreas";
 import { toast } from "sonner";
 import { RefreshCw, Lock, LogOut, Plus, Cloud, CloudOff, CloudLightning, Calendar, LayoutDashboard } from "lucide-react";
@@ -199,6 +199,35 @@ export default function Home() {
     sessionStorage.removeItem("jhonathan_senha");
     setSyncStatus({ status: "idle" });
     toast.info("Sessão encerrada. Modo de visualização ativo.");
+  };
+
+  // Salvar dados de objetivos e desafio simultaneamente (Localmente e na Nuvem se estiver autenticado)
+  const salvarDadosComDesafio = async (novosObjetivos: Objetivo[], novoDesafio: DesafioDiasData) => {
+    setObjetivos(novosObjetivos);
+    localStorage.setItem("tidly_objetivos", JSON.stringify(novosObjetivos));
+    
+    const desafioSeguro: DesafioDiasData = {
+      totalDias: novoDesafio?.totalDias || 180,
+      regras: Array.isArray(novoDesafio?.regras) ? novoDesafio.regras : [],
+      dias: novoDesafio?.dias && typeof novoDesafio.dias === "object" ? novoDesafio.dias : {}
+    };
+    setDesafioData(desafioSeguro);
+    localStorage.setItem("tidly_desafio_dias", JSON.stringify(desafioSeguro));
+
+    if (autenticado && senhaDigitada) {
+      setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
+      const sucesso = await salvarNaNuvem(novosObjetivos, desafioSeguro, senhaDigitada);
+      if (sucesso) {
+        setSyncStatus({
+          status: "success",
+          lastSync: new Date().toLocaleTimeString(),
+          message: "Sincronizado"
+        });
+      } else {
+        setSyncStatus({ status: "error", message: "Erro ao salvar na nuvem." });
+        toast.error("Falha ao salvar alterações na nuvem. Tentando novamente...");
+      }
+    }
   };
 
   // Salvar dados de objetivos (Localmente e na Nuvem se estiver autenticado)
@@ -469,7 +498,15 @@ export default function Home() {
       }
     }
 
-    salvarDados(novosObjetivos);
+    // Sincronizar automaticamente as etapas diárias com o Desafio dos 180 Dias
+    const novoDesafioSincronizado = sincronizarEtapasComDesafio(desafioData, novosObjetivos);
+    
+    // Salvar ambos atomicamente (primeiro atualiza o estado local)
+    setDesafioData(novoDesafioSincronizado);
+    localStorage.setItem("tidly_desafio_dias", JSON.stringify(novoDesafioSincronizado));
+    
+    // Salvar objetivos (que também persistirá na nuvem se autenticado)
+    salvarDadosComDesafio(novosObjetivos, novoDesafioSincronizado);
     setDialogoAberto(false);
   };
 
@@ -497,7 +534,12 @@ export default function Home() {
       toast.error("Submeta excluída!");
     }
 
-    salvarDados(novosObjetivos);
+    // Sincronizar automaticamente as etapas diárias com o Desafio dos 180 Dias após exclusão
+    const novoDesafioSincronizado = sincronizarEtapasComDesafio(desafioData, novosObjetivos);
+    setDesafioData(novoDesafioSincronizado);
+    localStorage.setItem("tidly_desafio_dias", JSON.stringify(novoDesafioSincronizado));
+
+    salvarDadosComDesafio(novosObjetivos, novoDesafioSincronizado);
     setDialogoAberto(false);
   };
 
@@ -710,7 +752,7 @@ export default function Home() {
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
           <span>&copy; 2026 Productivity Board. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v25</span>
+            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v26</span>
             <span>&bull;</span>
             <span>Design Notion-Flat</span>
           </div>

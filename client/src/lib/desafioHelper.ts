@@ -1,4 +1,4 @@
-import { DesafioDiasData, DiaCorrido, TarefaDia, RegraRecorrencia } from "./types";
+import { Objetivo, Meta, Submeta, Etapa, DesafioDiasData, RegraRecorrencia, DiaCorrido, TarefaDia } from "./types";
 
 /**
  * Cria a estrutura inicial do desafio de dias corridos.
@@ -175,6 +175,122 @@ export function adicionarRegraRecorrente(
 /**
  * Remove uma regra de recorrência e remove suas tarefas associadas nos dias onde ela não foi concluída.
  */
+/**
+ * Sincroniza as etapas das Metas/OKRs marcadas para sincronização diária com as regras de recorrência do desafio.
+ */
+
+
+/**
+ * Sincroniza as etapas das Metas/OKRs marcadas para sincronização diária com as regras de recorrência do desafio.
+ */
+export function sincronizarEtapasComDesafio(
+  desafio: DesafioDiasData,
+  objetivos: Objetivo[]
+): DesafioDiasData {
+  let novoDesafio = { ...desafio };
+  const totalDias = novoDesafio.totalDias || 180;
+  
+  // 1. Coletar todas as etapas que estão marcadas para sincronização diária nas metas
+  const etapasSincronizadas: { id: string; nome: string; categoria: "Mente" | "Corpo" | "Profissional" }[] = [];
+  
+  objetivos.forEach((obj: Objetivo) => {
+    obj.metas.forEach((meta: Meta) => {
+      meta.submetas.forEach((sub: Submeta) => {
+        if (Array.isArray(sub.etapas)) {
+          sub.etapas.forEach((et: Etapa) => {
+            if (et.sincronizarDesafio) {
+              etapasSincronizadas.push({
+                id: et.id,
+                nome: et.nome,
+                categoria: et.categoriaDesafio || "Mente"
+              });
+            }
+          });
+        }
+      });
+    });
+  });
+
+  // 2. Identificar quais regras do desafio vieram de etapas sincronizadas (usaremos um prefixo no ID, ex: "regra-etapa-{etapaId}")
+  const regrasAtuais = [...(novoDesafio.regras || [])];
+  const novasRegras: RegraRecorrencia[] = [];
+  
+  // Manter as regras puramente manuais (que não têm o prefixo "regra-etapa-")
+  regrasAtuais.forEach((regra) => {
+    if (!regra.id.startsWith("regra-etapa-")) {
+      novasRegras.push(regra);
+    }
+  });
+
+  // 3. Adicionar/Atualizar as regras que vêm das etapas sincronizadas
+  etapasSincronizadas.forEach((et) => {
+    const regraId = `regra-etapa-${et.id}`;
+    novasRegras.push({
+      id: regraId,
+      nome: et.nome,
+      tipo: "diaria",
+      dataCriacao: new Date().toISOString(),
+      categoria: et.categoria
+    });
+  });
+
+  // Atualizar a lista de regras no desafio
+  novoDesafio.regras = novasRegras;
+  
+  // 4. Reconciliar os dias do desafio
+  const novosDias = { ...novoDesafio.dias };
+  
+  for (let d = 1; d <= totalDias; d++) {
+    if (!novosDias[d]) {
+      novosDias[d] = { numero: d, concluido: false, tarefas: [] };
+    }
+    
+    const dia = novosDias[d];
+    const tarefasDia = [...(dia.tarefas || [])];
+    
+    // Filtrar as tarefas atuais para remover aquelas de etapas que não estão mais sincronizadas
+    let novasTarefasDia = tarefasDia.filter((t) => {
+      if (t.regraId && t.regraId.startsWith("regra-etapa-")) {
+        const etapaId = t.regraId.replace("regra-etapa-", "");
+        return etapasSincronizadas.some((et) => et.id === etapaId);
+      }
+      return true;
+    });
+
+    // Adicionar ou atualizar as tarefas das etapas sincronizadas atuais
+    etapasSincronizadas.forEach((et) => {
+      const regraId = `regra-etapa-${et.id}`;
+      const tarefaExistente = novasTarefasDia.find((t) => t.regraId === regraId);
+      
+      if (tarefaExistente) {
+        // Se a tarefa já existe, apenas atualiza o nome e a categoria se mudaram
+        tarefaExistente.nome = et.nome;
+        tarefaExistente.categoria = et.categoria;
+      } else {
+        // Se não existe, cria a tarefa (apenas se o dia não estiver concluído para não estragar histórico)
+        if (!dia.concluido) {
+          novasTarefasDia.push({
+            id: `t-${regraId}-${d}`,
+            nome: et.nome,
+            concluida: false,
+            regraId: regraId,
+            categoria: et.categoria
+          });
+        }
+      }
+    });
+
+    novosDias[d] = {
+      ...dia,
+      tarefas: novasTarefasDia,
+      concluido: novasTarefasDia.length > 0 ? novasTarefasDia.some((t) => t.concluida) : false
+    };
+  }
+
+  novoDesafio.dias = novosDias;
+  return novoDesafio;
+}
+
 export function removerRegraRecorrente(data: DesafioDiasData, regraId: string): DesafioDiasData {
   const totalDias = data.totalDias || 180;
   const novasRegras = (data.regras || []).filter((r) => r.id !== regraId);

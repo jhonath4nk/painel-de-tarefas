@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, CheckCircle2, Circle, Edit2 } from "lucide-react";
+import { Plus, Trash2, CheckCircle2, Circle, Edit2, Settings, RefreshCw } from "lucide-react";
 import { Etapa } from "@/lib/types";
 
 interface DialogoEdicaoProps {
@@ -36,6 +36,7 @@ export default function DialogoEdicao({
   const [novaEtapaNome, setNovaEtapaNome] = useState("");
   const [etapaSendoEditadaId, setEtapaSendoEditadaId] = useState<string | null>(null);
   const [etapaEdicaoNome, setEtapaEdicaoNome] = useState("");
+  const [etapaConfigExpandidaId, setEtapaConfigExpandidaId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -55,7 +56,9 @@ export default function DialogoEdicao({
     const nova: Etapa = {
       id: `etapa-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       nome: novaEtapaNome.trim(),
-      concluida: false
+      concluida: false,
+      sincronizarDesafio: false,
+      categoriaDesafio: "Mente"
     };
     setEtapas(prev => [...prev, nova]);
     setNovaEtapaNome("");
@@ -67,6 +70,25 @@ export default function DialogoEdicao({
 
   const handleToggleEtapaInterna = (id: string) => {
     setEtapas(prev => prev.map(e => e.id === id ? { ...e, concluida: !e.concluida } : e));
+  };
+
+  const handleToggleSincronizarDesafio = (id: string) => {
+    setEtapas(prev => prev.map(e => {
+      if (e.id === id) {
+        const novoSinc = !e.sincronizarDesafio;
+        return { 
+          ...e, 
+          sincronizarDesafio: novoSinc,
+          // Se ativou e não tem categoria, coloca "Mente" por padrão
+          categoriaDesafio: novoSinc ? (e.categoriaDesafio || "Mente") : e.categoriaDesafio
+        };
+      }
+      return e;
+    }));
+  };
+
+  const handleMudarCategoriaDesafio = (id: string, categoria: "Mente" | "Corpo" | "Profissional") => {
+    setEtapas(prev => prev.map(e => e.id === id ? { ...e, categoriaDesafio: categoria } : e));
   };
 
   const iniciarEdicaoEtapa = (id: string, nomeAtual: string) => {
@@ -230,7 +252,7 @@ export default function DialogoEdicao({
               </div>
 
               {/* Lista de etapas adicionadas */}
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin">
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
                 {etapas.length === 0 ? (
                   <p className="text-xs text-muted-foreground py-2 italic">
                     Nenhuma etapa adicionada. Crie pelo menos uma etapa para esta submeta.
@@ -239,82 +261,154 @@ export default function DialogoEdicao({
                   etapas.map((etapa) => (
                     <div 
                       key={etapa.id} 
-                      className="flex items-center justify-between gap-2 p-2 bg-secondary/20 border border-border/30 rounded-lg group"
+                      className="flex flex-col gap-1.5 p-2 bg-secondary/10 border border-border/20 rounded-lg group"
                     >
-                      {etapaSendoEditadaId === etapa.id ? (
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Input
-                            value={etapaEdicaoNome}
-                            onChange={(e) => setEtapaEdicaoNome(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                salvarEdicaoEtapa(etapa.id);
-                              } else if (e.key === "Escape") {
-                                cancelarEdicaoEtapa();
-                              }
-                            }}
-                            className="bg-background border-border rounded-lg text-foreground text-xs h-8 flex-1"
-                            autoFocus
-                          />
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => salvarEdicaoEtapa(etapa.id)}
-                            className="h-8 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 rounded-lg"
-                          >
-                            Salvar
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={cancelarEdicaoEtapa}
-                            className="h-8 text-muted-foreground hover:text-foreground text-xs px-2 rounded-lg"
-                          >
-                            Cancelar
-                          </Button>
+                      <div className="flex items-center justify-between gap-2">
+                        {etapaSendoEditadaId === etapa.id ? (
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Input
+                              value={etapaEdicaoNome}
+                              onChange={(e) => setEtapaEdicaoNome(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  salvarEdicaoEtapa(etapa.id);
+                                } else if (e.key === "Escape") {
+                                  cancelarEdicaoEtapa();
+                                }
+                              }}
+                              className="bg-background border-border rounded-lg text-foreground text-xs h-8 flex-1"
+                              autoFocus
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => salvarEdicaoEtapa(etapa.id)}
+                              className="h-8 bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-2.5 rounded-lg"
+                            >
+                              Salvar
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelarEdicaoEtapa}
+                              className="h-8 text-muted-foreground hover:text-foreground text-xs px-2 rounded-lg"
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div 
+                              className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
+                              onClick={() => handleToggleEtapaInterna(etapa.id)}
+                            >
+                              {etapa.concluida ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                              )}
+                              <span className={`text-xs font-medium truncate ${
+                                etapa.concluida ? "text-muted-foreground line-through" : "text-foreground"
+                              }`}>
+                                {etapa.nome}
+                              </span>
+                              {etapa.sincronizarDesafio && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-800/20 shrink-0">
+                                  <RefreshCw className="w-2 h-2 animate-spin-slow" />
+                                  Diária
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEtapaConfigExpandidaId(etapaConfigExpandidaId === etapa.id ? null : etapa.id)}
+                                className={`h-6 w-6 rounded ${
+                                  etapaConfigExpandidaId === etapa.id 
+                                    ? "text-primary bg-primary/10" 
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                }`}
+                                title="Configurar Sincronização Diária"
+                              >
+                                <Settings className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => iniciarEdicaoEtapa(etapa.id, etapa.nome)}
+                                className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
+                                title="Editar subetapa"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoverEtapa(etapa.id)}
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
+                                title="Remover subetapa"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Painel de Configurações de Sincronização da Etapa */}
+                      {etapaConfigExpandidaId === etapa.id && (
+                        <div className="mt-1 p-2.5 bg-secondary/30 border border-border/30 rounded-lg space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-foreground text-[11px]">Sincronização Diária</span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={!!etapa.sincronizarDesafio} 
+                                onChange={() => handleToggleSincronizarDesafio(etapa.id)}
+                                className="sr-only peer" 
+                              />
+                              <div className="w-7 h-4 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-400 after:border-zinc-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white peer-checked:after:border-emerald-600"></div>
+                            </label>
+                          </div>
+                          
+                          {etapa.sincronizarDesafio && (
+                            <div className="space-y-1.5 pt-1 border-t border-border/20">
+                              <span className="text-[10px] text-muted-foreground font-medium block">Categoria no Desafio 180 Dias:</span>
+                              <div className="flex gap-1.5">
+                                {(["Mente", "Corpo", "Profissional"] as const).map((cat) => {
+                                  const ativo = (etapa.categoriaDesafio || "Mente") === cat;
+                                  let corAtivo = "bg-cyan-950/40 text-cyan-400 border-cyan-800/40";
+                                  if (cat === "Corpo") corAtivo = "bg-emerald-950/40 text-emerald-400 border-emerald-800/40";
+                                  if (cat === "Profissional") corAtivo = "bg-rose-950/40 text-rose-400 border-rose-800/40";
+
+                                  return (
+                                    <button
+                                      key={cat}
+                                      type="button"
+                                      onClick={() => handleMudarCategoriaDesafio(etapa.id, cat)}
+                                      className={`flex-1 py-1 px-2 rounded border text-[10px] font-bold transition-all ${
+                                        ativo 
+                                          ? corAtivo 
+                                          : "bg-zinc-900/20 text-zinc-500 border-zinc-800/40 hover:border-zinc-700"
+                                      }`}
+                                    >
+                                      {cat}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-[9px] text-zinc-500 leading-tight pt-1">
+                                Esta etapa aparecerá automaticamente como um hábito diário a ser cumprido no Desafio de 180 Dias.
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <>
-                          <div 
-                            className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
-                            onClick={() => handleToggleEtapaInterna(etapa.id)}
-                          >
-                            {etapa.concluida ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                            ) : (
-                              <Circle className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-                            )}
-                            <span className={`text-xs font-medium truncate ${
-                              etapa.concluida ? "text-muted-foreground line-through" : "text-foreground"
-                            }`}>
-                              {etapa.nome}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => iniciarEdicaoEtapa(etapa.id, etapa.nome)}
-                              className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-secondary rounded"
-                              title="Editar subetapa"
-                            >
-                              <Edit2 className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemoverEtapa(etapa.id)}
-                              className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
-                              title="Remover subetapa"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </>
                       )}
                     </div>
                   ))
