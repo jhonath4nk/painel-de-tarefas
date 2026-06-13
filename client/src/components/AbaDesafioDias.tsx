@@ -85,21 +85,44 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
     let totalTarefas = 0;
     let tarefasConcluidas = 0;
 
+    // Para calcular a Consistência Média (Média de Execução):
+    // Somamos as porcentagens de conclusão de cada dia individualmente e dividimos pelo total de dias que têm tarefas.
+    let somaPorcentagensDiarias = 0;
+    let diasComTarefasCount = 0;
+
     const diasValidos = desafioData?.dias ? Object.values(desafioData.dias) : [];
 
     diasValidos.forEach((dia) => {
       if (!dia) return;
       if (dia.concluido) concluidos++;
       const tarefasValidas = Array.isArray(dia.tarefas) ? dia.tarefas : [];
+      
+      let tarefasDoDiaTotal = 0;
+      let tarefasDoDiaConcluidas = 0;
+
       tarefasValidas.forEach((t) => {
         if (!t) return;
         totalTarefas++;
-        if (t.concluida) tarefasConcluidas++;
+        tarefasDoDiaTotal++;
+        if (t.concluida) {
+          tarefasConcluidas++;
+          tarefasDoDiaConcluidas++;
+        }
       });
+
+      if (tarefasDoDiaTotal > 0) {
+        somaPorcentagensDiarias += (tarefasDoDiaConcluidas / tarefasDoDiaTotal) * 100;
+        diasComTarefasCount++;
+      }
     });
 
     const porcentagemDias = total > 0 ? Math.round((concluidos / total) * 100) : 0;
     const porcentagemTarefas = totalTarefas > 0 ? Math.round((tarefasConcluidas / totalTarefas) * 100) : 0;
+    
+    // Consistência Média: média das porcentagens de execução diária
+    const consistenciaMedia = diasComTarefasCount > 0 
+      ? Math.round(somaPorcentagensDiarias / diasComTarefasCount) 
+      : 0;
 
     return {
       total,
@@ -107,7 +130,8 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       porcentagemDias,
       totalTarefas,
       tarefasConcluidas,
-      porcentagemTarefas
+      porcentagemTarefas,
+      consistenciaMedia
     };
   }, [desafioData]);
 
@@ -534,7 +558,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         </div>
 
         {/* Estatísticas de Progresso do Desafio */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-5 border-t border-zinc-800/60">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-zinc-800/60">
           <div className="space-y-1">
             <span className="text-[10px] md:text-xs text-zinc-500 uppercase tracking-wider font-semibold">Dias Concluídos</span>
             <div className="flex items-baseline gap-2">
@@ -553,10 +577,19 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             <Progress value={stats.porcentagemTarefas} className="h-1.5 bg-zinc-800 [&>div]:bg-blue-500" />
           </div>
 
-          <div className="flex items-center justify-start sm:justify-end pt-2 sm:pt-0">
-            <div className="text-left sm:text-right">
+          <div className="flex items-center justify-start sm:justify-center pt-2 sm:pt-0">
+            <div className="text-left sm:text-center">
               <span className="text-[10px] md:text-xs text-zinc-500 block uppercase tracking-wider font-semibold">Consistência Geral</span>
               <span className="text-2xl md:text-3xl font-extrabold text-emerald-400">{stats.porcentagemDias}%</span>
+              <span className="text-[9px] text-zinc-500 block mt-0.5">Dias 100% feitos</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-start sm:justify-end pt-2 sm:pt-0">
+            <div className="text-left sm:text-right">
+              <span className="text-[10px] md:text-xs text-zinc-500 block uppercase tracking-wider font-semibold">Consistência Média</span>
+              <span className="text-2xl md:text-3xl font-extrabold text-cyan-400">{stats.consistenciaMedia}%</span>
+              <span className="text-[9px] text-zinc-500 block mt-0.5">Média de execução diária</span>
             </div>
           </div>
         </div>

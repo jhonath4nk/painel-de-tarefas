@@ -710,7 +710,7 @@ export default function Home() {
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
           <span>&copy; 2026 Productivity Board. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v21</span>
+            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v22</span>
             <span>&bull;</span>
             <span>Design Notion-Flat</span>
           </div>
