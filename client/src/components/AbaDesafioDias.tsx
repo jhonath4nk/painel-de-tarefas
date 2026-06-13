@@ -52,9 +52,9 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
           let cat = t.categoria;
           if (!cat) {
             const nomeL = t.nome.toLowerCase();
-            if (nomeL.includes("inglês") || nomeL.includes("conhecimento") || nomeL.includes("estudar") || nomeL.includes("leitura")) {
+            if (nomeL.includes("inglês") || nomeL.includes("conhecimento") || nomeL.includes("estudar") || nomeL.includes("leitura") || nomeL.includes("livro") || nomeL.includes("aprender") || nomeL.includes("curso")) {
               cat = "Mente";
-            } else if (nomeL.includes("treino") || nomeL.includes("academia") || nomeL.includes("saúde") || nomeL.includes("água") || nomeL.includes("caminhada")) {
+            } else if (nomeL.includes("treino") || nomeL.includes("academia") || nomeL.includes("saúde") || nomeL.includes("água") || nomeL.includes("caminhada") || nomeL.includes("comer") || nomeL.includes("limpo") || nomeL.includes("físico") || nomeL.includes("exercício") || nomeL.includes("exercicio") || nomeL.includes("cardio") || nomeL.includes("alongamento") || nomeL.includes("dieta") || nomeL.includes("alimentação")) {
               cat = "Corpo";
             } else {
               cat = "Profissional";
@@ -919,9 +919,9 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                     let cat = tarefa.categoria;
                     if (!cat) {
                       const nomeL = tarefa.nome.toLowerCase();
-                      if (nomeL.includes("inglês") || nomeL.includes("conhecimento") || nomeL.includes("estudar") || nomeL.includes("leitura")) {
+                      if (nomeL.includes("inglês") || nomeL.includes("conhecimento") || nomeL.includes("estudar") || nomeL.includes("leitura") || nomeL.includes("livro") || nomeL.includes("aprender") || nomeL.includes("curso")) {
                         cat = "Mente";
-                      } else if (nomeL.includes("treino") || nomeL.includes("academia") || nomeL.includes("saúde") || nomeL.includes("água") || nomeL.includes("caminhada")) {
+                      } else if (nomeL.includes("treino") || nomeL.includes("academia") || nomeL.includes("saúde") || nomeL.includes("água") || nomeL.includes("caminhada") || nomeL.includes("comer") || nomeL.includes("limpo") || nomeL.includes("físico") || nomeL.includes("exercício") || nomeL.includes("exercicio") || nomeL.includes("cardio") || nomeL.includes("alongamento") || nomeL.includes("dieta") || nomeL.includes("alimentação")) {
                         cat = "Corpo";
                       } else {
                         cat = "Profissional";
