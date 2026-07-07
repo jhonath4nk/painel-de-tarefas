@@ -46,7 +46,7 @@ export default function Home() {
       const senhaSalva = sessionStorage.getItem("jhonathan_senha");
       
       // 2. Carregar dados locais temporariamente como fallback (Objetivos)
-      const dadosSalvos = localStorage.getItem("tidly_objetivos");
+      const dadosSalvos = localStorage.getItem("desafio_objetivos") || localStorage.getItem("tidly_objetivos");
       let dadosIniciaisParaUsar = DADOS_INICIAIS;
       if (dadosSalvos) {
         try {
@@ -58,7 +58,7 @@ export default function Home() {
       setObjetivos(dadosIniciaisParaUsar);
 
       // 3. Carregar dados locais temporariamente como fallback (Desafio de Dias)
-      const desafioSalvo = localStorage.getItem("tidly_desafio_dias");
+      const desafioSalvo = localStorage.getItem("desafio_desafio_dias") || localStorage.getItem("tidly_desafio_dias");
       let desafioInicialParaUsar = inicializarDesafio();
       if (desafioSalvo) {
         try {
@@ -120,7 +120,7 @@ export default function Home() {
       if (payloadNuvem) {
         // Objetivos carregados
         setObjetivos(payloadNuvem.objetivos);
-        localStorage.setItem("tidly_objetivos", JSON.stringify(payloadNuvem.objetivos));
+        localStorage.setItem("desafio_objetivos", JSON.stringify(payloadNuvem.objetivos));
 
         // Desafio de Dias carregado (ou inicializa se não houver no banco ainda)
         let desafioParaUsar = payloadNuvem.desafioDias || desafioLocal;
@@ -155,7 +155,7 @@ export default function Home() {
         }
 
         setDesafioData(desafioParaUsar);
-        localStorage.setItem("tidly_desafio_dias", JSON.stringify(desafioParaUsar));
+        localStorage.setItem("desafio_desafio_dias", JSON.stringify(desafioParaUsar));
 
         setSyncStatus({
           status: "success",
@@ -204,7 +204,7 @@ export default function Home() {
   // Salvar dados de objetivos e desafio simultaneamente (Localmente e na Nuvem se estiver autenticado)
   const salvarDadosComDesafio = async (novosObjetivos: Objetivo[], novoDesafio: DesafioDiasData) => {
     setObjetivos(novosObjetivos);
-    localStorage.setItem("tidly_objetivos", JSON.stringify(novosObjetivos));
+    localStorage.setItem("desafio_objetivos", JSON.stringify(novosObjetivos));
     
     const desafioSeguro: DesafioDiasData = {
       totalDias: novoDesafio?.totalDias || 180,
@@ -212,7 +212,7 @@ export default function Home() {
       dias: novoDesafio?.dias && typeof novoDesafio.dias === "object" ? novoDesafio.dias : {}
     };
     setDesafioData(desafioSeguro);
-    localStorage.setItem("tidly_desafio_dias", JSON.stringify(desafioSeguro));
+    localStorage.setItem("desafio_desafio_dias", JSON.stringify(desafioSeguro));
 
     if (autenticado && senhaDigitada) {
       setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
@@ -233,7 +233,7 @@ export default function Home() {
   // Salvar dados de objetivos (Localmente e na Nuvem se estiver autenticado)
   const salvarDados = async (novosObjetivos: Objetivo[]) => {
     setObjetivos(novosObjetivos);
-    localStorage.setItem("tidly_objetivos", JSON.stringify(novosObjetivos));
+    localStorage.setItem("desafio_objetivos", JSON.stringify(novosObjetivos));
 
     if (autenticado && senhaDigitada) {
       setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
@@ -261,7 +261,7 @@ export default function Home() {
     };
 
     setDesafioData(desafioSeguro);
-    localStorage.setItem("tidly_desafio_dias", JSON.stringify(desafioSeguro));
+    localStorage.setItem("desafio_desafio_dias", JSON.stringify(desafioSeguro));
 
     if (autenticado && senhaDigitada) {
       setSyncStatus({ status: "syncing", message: "Salvando na nuvem..." });
@@ -503,7 +503,7 @@ export default function Home() {
     
     // Salvar ambos atomicamente (primeiro atualiza o estado local)
     setDesafioData(novoDesafioSincronizado);
-    localStorage.setItem("tidly_desafio_dias", JSON.stringify(novoDesafioSincronizado));
+    localStorage.setItem("desafio_desafio_dias", JSON.stringify(novoDesafioSincronizado));
     
     // Salvar objetivos (que também persistirá na nuvem se autenticado)
     salvarDadosComDesafio(novosObjetivos, novoDesafioSincronizado);
@@ -537,7 +537,7 @@ export default function Home() {
     // Sincronizar automaticamente as etapas diárias com o Desafio dos 180 Dias após exclusão
     const novoDesafioSincronizado = sincronizarEtapasComDesafio(desafioData, novosObjetivos);
     setDesafioData(novoDesafioSincronizado);
-    localStorage.setItem("tidly_desafio_dias", JSON.stringify(novoDesafioSincronizado));
+    localStorage.setItem("desafio_desafio_dias", JSON.stringify(novoDesafioSincronizado));
 
     salvarDadosComDesafio(novosObjetivos, novoDesafioSincronizado);
     setDialogoAberto(false);
@@ -745,9 +745,9 @@ export default function Home() {
 
         {/* Rodapé Oculto/Discreto v6 e Créditos de Design */}
         <footer className="pt-10 pb-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between text-[11px] text-muted-foreground gap-2">
-          <span>&copy; 2026 Productivity Board. Todos os direitos reservados.</span>
+          <span>&copy; 2026 Painel de Evolução Pessoal. Todos os direitos reservados.</span>
           <div className="flex items-center gap-4">
-            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v27</span>
+            <span className="font-bold text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-800/20">Versão v28</span>
             <span>&bull;</span>
             <span>Design Notion-Flat</span>
           </div>

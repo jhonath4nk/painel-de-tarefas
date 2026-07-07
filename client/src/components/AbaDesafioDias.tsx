@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { DesafioDiasData, RegraRecorrencia, DiaCorrido, TarefaDia } from "../lib/types";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, Cell, CartesianGrid } from "recharts";
 import { 
@@ -21,7 +21,48 @@ interface AbaDesafioDiasProps {
 }
 
 export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafioDiasProps) {
-  const [diaSelecionadoNum, setDiaSelecionadoNum] = useState<number>(1);
+  const [diaSelecionadoNum, setDiaSelecionadoNum] = useState<number>(6); // Inicializar em 6 (hoje, 06/07/2026)
+
+  // Data de início do desafio: 01/07/2026
+  const DATA_INICIO = useMemo(() => new Date(2026, 6, 1), []); // 1 de Julho de 2026
+
+  // Função para obter a data real correspondente a um dia corrido
+  const obterDataDia = useCallback((numeroDia: number): Date => {
+    const data = new Date(DATA_INICIO);
+    data.setDate(DATA_INICIO.getDate() + (numeroDia - 1));
+    return data;
+  }, [DATA_INICIO]);
+
+  // Função para formatar a data de forma curta (ex: "06 Jul")
+  const formatarDataCurta = useCallback((date: Date): string => {
+    const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const dia = String(date.getDate()).padStart(2, "0");
+    const mes = meses[date.getMonth()];
+    return `${dia} ${mes}`;
+  }, []);
+
+  // Função para obter o dia da semana curto (ex: "Seg", "Ter")
+  const formatarDiaSemana = useCallback((date: Date): string => {
+    const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    return diasSemana[date.getDay()];
+  }, []);
+
+  // Função para formatar a data de forma longa e bonita (ex: "Segunda-feira, 06 de Julho de 2026")
+  const formatarDataLonga = useCallback((date: Date): string => {
+    const diasSemanaLongos = [
+      "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", 
+      "Quinta-feira", "Sexta-feira", "Sábado"
+    ];
+    const mesesLongos = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+    const diaSemana = diasSemanaLongos[date.getDay()];
+    const dia = String(date.getDate()).padStart(2, "0");
+    const mes = mesesLongos[date.getMonth()];
+    const ano = date.getFullYear();
+    return `${diaSemana}, ${dia} de ${mes} de ${ano}`;
+  }, []);
   const [novaRegraNome, setNovaRegraNome] = useState("");
   const [novaRegraTipo, setNovaRegraTipo] = useState<"diaria" | "intervalo">("diaria");
   const [novaRegraIntervalo, setNovaRegraIntervalo] = useState("2");
@@ -68,7 +109,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       });
 
       dados.push({
-        name: `Dia ${d}`,
+        name: formatarDataCurta(obterDataDia(d)),
         Mente: menteConcluidas,
         Corpo: corpoConcluidas,
         Profissional: profissionalConcluidas
@@ -183,6 +224,90 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       return filtroDia === "concluidos" ? dia.concluido : !dia.concluido;
     });
   }, [desafioData, filtroDia]);
+
+  // Agrupar os dias por mês para exibição em formato de calendário real
+  const mesesAgrupados = useMemo(() => {
+    const total = desafioData?.totalDias || 180;
+    const todosDias = Array.from({ length: total }, (_, i) => i + 1);
+    
+    // Filtramos os dias com base no filtro selecionado
+    const diasFiltradosSet = new Set(diasFiltrados);
+
+    const meses: {
+      [chaveMes: string]: {
+        nome: string;
+        ano: number;
+        mesIndex: number;
+        dias: Array<{ numeroDia: number; data: Date; vazio: boolean }>;
+      };
+    } = {};
+
+    todosDias.forEach((num) => {
+      const data = obterDataDia(num);
+      const ano = data.getFullYear();
+      const mesIndex = data.getMonth();
+      const nomeMeses = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+      ];
+      const chaveMes = `${ano}-${mesIndex}`;
+
+      if (!meses[chaveMes]) {
+        meses[chaveMes] = {
+          nome: nomeMeses[mesIndex],
+          ano,
+          mesIndex,
+          dias: []
+        };
+      }
+
+      // Se o dia corrido passa pelo filtro, nós o adicionamos
+      if (diasFiltradosSet.has(num)) {
+        meses[chaveMes].dias.push({
+          numeroDia: num,
+          data,
+          vazio: false
+        });
+      }
+    });
+
+    // Para cada mês, precisamos alinhar os dias com os dias da semana (células vazias no início)
+    // Apenas se o filtro estiver como "todos", para não quebrar a estrutura do calendário.
+    // Se houver filtros de concluídos/pendentes, exibimos em grid corrido simples para não ficar buracos confusos.
+    const mesesOrdenados = Object.values(meses).sort((a, b) => {
+      if (a.ano !== b.ano) return a.ano - b.ano;
+      return a.mesIndex - b.mesIndex;
+    });
+
+    if (filtroDia === "todos") {
+      mesesOrdenados.forEach((m) => {
+        if (m.dias.length === 0) return;
+        
+        // Descobrir qual o dia da semana do primeiro dia deste mês que está no desafio
+        const primeiroDiaValido = m.dias[0];
+        const primeiroDiaData = primeiroDiaValido.data;
+        
+        // Se for o primeiro dia real do mês (dia 1 do mês), podemos alinhar perfeitamente.
+        // Mas se for o início do desafio (01/07/2026), calha de ser o dia 1 do mês também.
+        // Caso o primeiro dia do desafio naquele mês não seja o dia 1 do mês (por exemplo, se o desafio começasse no dia 15),
+        // alinharíamos com base no dia real do mês. Como começa em 01/07/2026, é perfeito.
+        const diaSemanaPrimeiro = primeiroDiaData.getDay(); // 0 = Domingo, 1 = Segunda, etc.
+        
+        // Adicionar células vazias antes do primeiro dia para alinhar com o dia da semana
+        const vazios: Array<{ numeroDia: number; data: Date; vazio: boolean }> = [];
+        for (let i = 0; i < diaSemanaPrimeiro; i++) {
+          vazios.push({
+            numeroDia: -1 - i,
+            data: new Date(),
+            vazio: true
+          });
+        }
+        m.dias = [...vazios, ...m.dias];
+      });
+    }
+
+    return mesesOrdenados;
+  }, [desafioData, diasFiltrados, filtroDia, obterDataDia]);
 
   // Alternar a conclusão de uma tarefa de um dia específico
   const handleToggleTarefa = (diaNum: number, tarefaId: string) => {
@@ -808,28 +933,30 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             </div>
           </div>
 
-          {/* Grid Scrollable de Dias */}
-          <div className="bg-zinc-950 border border-zinc-800/60 rounded-xl p-3 md:p-6 shadow-xl">
+          {/* Grid Scrollable de Dias (Calendário Real) */}
+          <div className="bg-zinc-950 border border-zinc-800/60 rounded-xl p-3 md:p-5 shadow-xl">
             {diasFiltrados.length === 0 ? (
               <div className="text-center py-12 text-zinc-500 text-sm">
                 Nenhum dia encontrado para o filtro selecionado.
               </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2 max-h-[480px] overflow-y-auto pr-1">
+            ) : filtroDia !== "todos" ? (
+              // Se tiver filtros ativos (Concluídos ou Pendentes), exibe uma lista corrida simples para não quebrar a lógica visual do calendário
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin">
                 {diasFiltrados.map((num) => {
                   const dia = desafioData?.dias[num] || desafioData?.dias[String(num) as any];
                   const isConcluido = dia?.concluido;
                   const tarefasValidas = dia && Array.isArray(dia.tarefas) ? dia.tarefas : [];
                   const temTarefas = tarefasValidas.length > 0;
                   const isSelecionado = num === diaSelecionadoNum;
+                  const dataReal = obterDataDia(num);
 
                   return (
                     <button
                       key={num}
                       onClick={() => setDiaSelecionadoNum(num)}
-                      className={`relative rounded-xl flex flex-col items-center justify-center transition-all border text-[10px] sm:text-xs font-semibold h-16 w-full shrink-0 ${
+                      className={`relative rounded-xl flex flex-col items-center justify-center transition-all border p-1.5 h-14 w-full shrink-0 ${
                         isSelecionado
-                          ? "bg-emerald-600 text-white border-emerald-400 shadow-lg scale-102 z-10 ring-2 ring-emerald-500/20"
+                          ? "bg-emerald-600 text-white border-emerald-400 shadow-lg scale-102 z-10 ring-2 ring-emerald-500/20 font-bold"
                           : isConcluido
                           ? "bg-emerald-950/30 text-emerald-400 border-emerald-800/40 hover:bg-emerald-950/50"
                           : temTarefas
@@ -837,16 +964,80 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                           : "bg-zinc-950 text-zinc-600 border-zinc-900 cursor-not-allowed"
                       }`}
                     >
-                      <span className="text-[8px] sm:text-[9px] opacity-60 font-medium block">DIA</span>
-                      <span className="text-sm sm:text-base font-extrabold block mt-0.5">{num}</span>
+                      <span className="text-[7px] sm:text-[8px] opacity-60 font-medium block uppercase">{formatarDiaSemana(dataReal)}</span>
+                      <span className="text-xs sm:text-sm font-extrabold block mt-0.5">{String(dataReal.getDate()).padStart(2, "0")}</span>
+                      <span className="text-[7px] opacity-50 block">{formatarDataCurta(dataReal)}</span>
                       
-                      {/* Pequeno ponto indicador de conclusão rápida */}
                       {isConcluido && !isSelecionado && (
-                        <div className="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <div className="absolute bottom-1 w-1 h-1 rounded-full bg-emerald-400" />
                       )}
                     </button>
                   );
                 })}
+              </div>
+            ) : (
+              // Calendário Real por Meses (com cabeçalhos de dias da semana e alinhamento perfeito)
+              <div className="space-y-6 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin">
+                {mesesAgrupados.map((mes) => (
+                  <div key={`${mes.ano}-${mes.mesIndex}`} className="space-y-2 border-b border-zinc-900/60 pb-4 last:border-b-0 last:pb-0">
+                    <h3 className="text-xs md:text-sm font-bold text-zinc-300 flex items-center justify-between px-1">
+                      <span className="uppercase tracking-wider">{mes.nome}</span>
+                      <span className="text-[10px] text-zinc-500 font-semibold">{mes.ano}</span>
+                    </h3>
+                    
+                    {/* Cabeçalho de Dias da Semana (D S T Q Q S S) */}
+                    <div className="grid grid-cols-7 gap-1 text-center text-[9px] md:text-[10px] font-bold text-zinc-500 pb-1">
+                      <span>D</span>
+                      <span>S</span>
+                      <span>T</span>
+                      <span>Q</span>
+                      <span>Q</span>
+                      <span>S</span>
+                      <span>S</span>
+                    </div>
+
+                    {/* Grade de Dias do Mês */}
+                    <div className="grid grid-cols-7 gap-1">
+                      {mes.dias.map((d, idx) => {
+                        if (d.vazio) {
+                          return <div key={`vazio-${mes.ano}-${mes.mesIndex}-${idx}`} className="h-8 md:h-10 w-full rounded-md bg-transparent" />;
+                        }
+
+                        const num = d.numeroDia;
+                        const dia = desafioData?.dias[num] || desafioData?.dias[String(num) as any];
+                        const isConcluido = dia?.concluido;
+                        const tarefasValidas = dia && Array.isArray(dia.tarefas) ? dia.tarefas : [];
+                        const temTarefas = tarefasValidas.length > 0;
+                        const isSelecionado = num === diaSelecionadoNum;
+                        const diaDoMes = d.data.getDate();
+
+                        return (
+                          <button
+                            key={num}
+                            onClick={() => setDiaSelecionadoNum(num)}
+                            className={`relative rounded-lg flex flex-col items-center justify-center transition-all border h-8 md:h-10 w-full text-[10px] md:text-xs font-semibold ${
+                              isSelecionado
+                                ? "bg-emerald-600 text-white border-emerald-400 shadow-md scale-105 z-10 font-bold"
+                                : isConcluido
+                                ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/50 hover:bg-emerald-950/60"
+                                : temTarefas
+                                ? "bg-zinc-900 text-zinc-300 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80"
+                                : "bg-zinc-950 text-zinc-600 border-zinc-900 cursor-not-allowed"
+                            }`}
+                            title={`Dia ${num} (${formatarDataCurta(d.data)})`}
+                          >
+                            <span>{diaDoMes}</span>
+                            
+                            {/* Pequeno indicador de tarefas concluídas no dia */}
+                            {isConcluido && !isSelecionado && (
+                              <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.6)]" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -881,7 +1072,11 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
             <CardHeader className="pb-3 md:pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl md:text-2xl font-extrabold text-white">Dia {diaSelecionadoNum}</CardTitle>
+                  <CardTitle className="text-xl md:text-2xl font-extrabold text-white flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span>Dia {diaSelecionadoNum}</span>
+                    <span className="text-zinc-500 text-xs sm:text-sm font-medium hidden sm:inline">—</span>
+                    <span className="text-zinc-400 text-xs sm:text-sm font-semibold">{formatarDataLonga(obterDataDia(diaSelecionadoNum))}</span>
+                  </CardTitle>
                   <CardDescription className="text-zinc-400 text-[11px] md:text-xs mt-0.5">
                     {diaSelecionado.concluido 
                       ? "Todas as obrigações concluídas!" 
@@ -1009,7 +1204,11 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
                 >
                   <ChevronLeft className="w-4 h-4" /> Anterior
                 </button>
-                <span className="font-medium">Dia {diaSelecionadoNum} de {stats.total}</span>
+                <span className="font-medium flex items-center gap-1">
+                  <span>Dia {diaSelecionadoNum}</span>
+                  <span className="text-zinc-600 hidden sm:inline">|</span>
+                  <span className="text-zinc-400 hidden sm:inline">{formatarDataCurta(obterDataDia(diaSelecionadoNum))}</span>
+                </span>
                 <button
                   onClick={() => setDiaSelecionadoNum(prev => Math.min(stats.total, prev + 1))}
                   disabled={diaSelecionadoNum === stats.total}

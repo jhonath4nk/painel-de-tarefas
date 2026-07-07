@@ -93,7 +93,7 @@ export default function DialogoLoginGitHub({
                 <li>
                   Acesse sua conta do GitHub e vá em{" "}
                   <a
-                    href="https://github.com/settings/tokens/new?description=Tidly%20Dashboard&scopes=gist"
+                    href="https://github.com/settings/tokens/new?description=Painel%20de%20Evolucao%20Pessoal&scopes=gist"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline font-semibold"
@@ -102,7 +102,7 @@ export default function DialogoLoginGitHub({
                   </a>.
                 </li>
                 <li>
-                  Insira uma descrição (ex: <code>Tidly Dashboard</code>).
+                  Insira uma descrição (ex: <code>Painel de Evolucao Pessoal</code>).
                 </li>
                 <li>
                   Marque apenas a permissão <strong><code>gist</code></strong> (necessária para criar o arquivo privado de dados).

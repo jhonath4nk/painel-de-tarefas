@@ -1,6 +1,6 @@
 import { Objetivo } from "./types";
 
-const GIST_FILENAME = "tidly_dashboard_data.json";
+const GIST_FILENAME = "desafio_dashboard_data.json";
 
 export interface GitHubUser {
   login: string;
@@ -38,7 +38,7 @@ export async function validarGitHubToken(token: string): Promise<GitHubUser> {
 }
 
 /**
- * Buscar ou Criar um Gist privado para armazenar os dados do Tidly
+ * Buscar ou Criar um Gist privado para armazenar os dados do Painel de Evolução Pessoal
  */
 export async function sincronizarGist(
   token: string,
@@ -57,7 +57,7 @@ export async function sincronizarGist(
   }
 
   const gists = await responseList.json();
-  // Encontrar um Gist que contenha o arquivo específico do Tidly
+  // Encontrar um Gist que contenha o arquivo específico do Painel de Evolução Pessoal
   const gistExistente = gists.find(
     (g: any) => g.files && g.files[GIST_FILENAME]
   );
@@ -88,7 +88,7 @@ export async function sincronizarGist(
   } else {
     // 3. Se não existe, criar um novo Gist privado
     const novoGistPayload = {
-      description: "Tidly Productivity Dashboard - Dados de Objetivos e Metas",
+      description: "Painel de Evolucao Pessoal - Dados de Objetivos e Metas",
       public: false, // Gist Privado!
       files: {
         [GIST_FILENAME]: {

@@ -13,7 +13,7 @@ export default function HeroVideo() {
       <div className="flex-1 space-y-4">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
           <Info className="w-3.5 h-3.5" />
-          Conceito Tidly v6
+          Painel de Evolução Pessoal v6
         </div>
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
           Como funciona a hierarquia cronológica?

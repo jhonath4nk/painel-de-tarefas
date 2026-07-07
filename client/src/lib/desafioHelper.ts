@@ -38,7 +38,15 @@ export function inicializarDesafio(): DesafioDiasData {
 
   // Gerar os primeiros 180 dias com base nas regras iniciais
   for (let d = 1; d <= 180; d++) {
-    data.dias[d] = gerarDiaComRegras(d, regrasIniciais);
+    const dia = gerarDiaComRegras(d, regrasIniciais);
+    
+    // Marcar retroativamente os dias 1 a 5 como concluídos/feitos com as tarefas marcadas como feitas
+    if (d <= 5) {
+      dia.concluido = true;
+      dia.tarefas = dia.tarefas.map(t => ({ ...t, concluida: true }));
+    }
+    
+    data.dias[d] = dia;
   }
 
   return data;
