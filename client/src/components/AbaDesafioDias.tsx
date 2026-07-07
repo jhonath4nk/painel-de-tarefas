@@ -894,10 +894,10 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
       </div>
 
       {/* Grid Principal: Lateral Esquerda com Dias / Lateral Direita com Detalhes */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Grid de Dias (Esquerda) */}
-        <div className="md:col-span-5 lg:col-span-4 space-y-4">
+        <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-emerald-500" />
@@ -1060,7 +1060,7 @@ export function AbaDesafioDias({ desafioData, onChange, autenticado }: AbaDesafi
         </div>
 
         {/* Detalhes do Dia Selecionado (Direita) */}
-        <div className="md:col-span-7 lg:col-span-8 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             <h2 className="text-base md:text-lg font-bold text-white">Checklist do Dia</h2>
